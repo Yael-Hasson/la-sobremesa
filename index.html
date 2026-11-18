@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>La Sobremesa</title>
 <meta name="description" content="Juegos de cartas online y gratis para jugar con familia y amigos desde cualquier lugar.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a2a22">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="La Sobremesa">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
@@ -668,6 +675,21 @@ function createRoom(game){
   });
 }
 
+/* Partida local contra bots: no crea sala ni usa la red. */
+function playOffline(game){
+  S.isHost = true; S.offline = true; S.code = ""; S.busy = false;
+  hostInit(game);
+  const bots = game === "truco" ? 1 : 2;
+  for (let k = 0; k < bots; k++) act(0, {t:"addBot"});
+  S.screen = "game"; hostSync();
+}
+function goHome(){
+  clearTimeout(botTimer);
+  if (S.peer){ try { S.peer.destroy(); } catch(e){} }
+  S.peer = null; S.conn = null; S.conns = new Map(); S.isHost = false; S.offline = false;
+  S.view = null; S.code = ""; S.screen = "home"; G = null; render();
+}
+
 function joinRoom(code){
   if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
   code = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -767,7 +789,7 @@ function renderTruco(v){
     </div></div>` : "";
   return `<div class="topbar">
       <div class="round"><span class="label">Truco a ${t.target}</span><span class="wildchip">${lvl}</span></div>
-      <span class="muted">Sala ${esc(v.code)}</span>
+      <span class="muted">${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>
     </div>
     <div class="tscore">${side(my, N === 2 ? "Tú" : "Nosotros")}${side(1 - my, N === 2 ? "Rival" : "Ellos")}</div>
     <div class="players">${chips}</div>
@@ -798,6 +820,26 @@ const rulesHTML = `<details><summary>Cómo se juega Once Rondas</summary><ul>
   <li>Mazo: 5 palos (☀ soles, ☾ lunas, ≈ olas, ✿ flores, ϟ rayos) del 3 a la K, dos veces, más 6 jokers.</li>
 </ul></details>`;
 
+/* Instalar como app */
+let installEvt = null;
+const isStandalone = () => (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (S.screen === "home") render(); });
+window.addEventListener("appinstalled", () => { installEvt = null; toast("La Sobremesa quedó instalada"); if (S.screen === "home") render(); });
+window.addEventListener("online", () => { if (S.screen === "home") render(); });
+window.addEventListener("offline", () => { if (S.screen === "home") render(); });
+function installHTML(){
+  if (isStandalone() || !location.protocol.startsWith("http")) return "";
+  const how = installEvt ? `<div class="row"><button id="install">Instalar La Sobremesa</button></div>`
+    : isIOS() ? `<p class="muted">En iPhone o iPad: abre esta página en Safari, toca el botón Compartir y elige <strong>Añadir a pantalla de inicio</strong>.</p>`
+    : `<p class="muted">En Android: menú ⋮ del navegador y <strong>Instalar app</strong> (o “Añadir a pantalla de inicio”). En la computadora: el icono de instalar en la barra de direcciones.</p>`;
+  return `<section class="panel">
+      <h2>Tenerla como app</h2>
+      <p class="muted">Instálala y se abre como una app, con su icono. Una vez instalada puedes jugar contra los bots aunque no tengas internet.</p>
+      ${how}
+    </section>`;
+}
+
 function renderHome(){
   const fan = [{s:0,r:7},{s:1,r:8},{j:true},{s:3,r:10},{s:4,r:11}].map(c => cardHTML(c, 9)).join("");
   return `<header class="hero">
@@ -805,6 +847,7 @@ function renderHome(){
       <h1>La Sobremesa</h1>
       <p class="muted" style="max-width:56ch">Abre una mesa, comparte el código y juega a las cartas con quien quieras, estés donde estés. Sin cuentas ni descargas.</p>
     </header>
+    ${!navigator.onLine ? `<div class="banner">Estás sin conexión. Puedes jugar contra los bots con “Jugar sin conexión”; para jugar con otras personas hace falta internet.</div>` : ""}
     <section class="panel">
       <label class="label" for="nm">Tu nombre</label>
       <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
@@ -816,7 +859,7 @@ function renderHome(){
         <div class="hero-fan" aria-hidden="true">${fan}</div>
         <p class="muted">De 3 a 13 cartas, y en cada ronda cambia el comodín. Arma grupos y escaleras y termina con la menor cantidad de puntos.</p>
         <p class="muted">Al crear la sala, la partida corre en tu navegador: mantén esta pestaña abierta hasta el final.</p>
-        <div class="row"><button id="create" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Once Rondas"}</button></div>
+        <div class="row"><button id="create" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Once Rondas"}</button><button class="ghost" id="offOnce">Jugar sin conexión</button></div>
       </section>
       <section class="panel">
         <span class="label">Juego · de a 2 o de a 4 en parejas · a 30 puntos</span>
@@ -824,7 +867,7 @@ function renderHome(){
         <div class="hero-fan" aria-hidden="true">${[{s:0,r:1},{s:1,r:1},{s:0,r:7},{s:2,r:7},{s:3,r:3}].map(c => tCardHTML(c)).join("")}</div>
         <p class="muted">El truco argentino de siempre: envido, real envido, falta envido, truco, retruco y vale cuatro. Sin flor.</p>
         <p class="muted">Para jugar en parejas hacen falta 4 personas; puedes completar con bots.</p>
-        <div class="row"><button id="createTruco" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Truco"}</button></div>
+        <div class="row"><button id="createTruco" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Truco"}</button><button class="ghost" id="offTruco">Jugar sin conexión</button></div>
       </section>
     </div>
     <div class="grid2">
@@ -835,6 +878,7 @@ function renderHome(){
         <input id="code" maxlength="6" placeholder="ABCDE" value="${esc(urlCode || "")}" style="text-transform:uppercase;letter-spacing:.15em">
         <div class="row"><button id="join" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Unirme"}</button></div>
       </section>
+      ${installHTML()}
     </div>
     ${rulesHTML}${trucoRules}`;
 }
@@ -849,11 +893,16 @@ function renderLobby(v){
     : n < 2 ? "Espera a que alguien se una o añade un bot para practicar." : "";
   return `<header class="hero"><span class="label">La Sobremesa · Sala</span><h1>${GAME_NAME[v.game]}</h1></header>
   <div class="grid2">
-    <section class="panel">
+    ${v.code ? `<section class="panel">
       <span class="label">Código para unirse</span>
       <span class="code">${esc(v.code)}</span>
       ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p><div class="row"><button class="ghost" id="copy">Copiar enlace</button></div>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
-    </section>
+    </section>` : `<section class="panel">
+      <span class="label">Partida sin conexión</span>
+      <h2>Tú contra los bots</h2>
+      <p class="muted">Esta mesa no usa internet, así que nadie más puede unirse. Añade o quita bots y empieza cuando quieras.</p>
+      <div class="row"><button class="ghost" id="home">Volver al inicio</button></div>
+    </section>`}
     <section class="panel">
       <span class="label">En la mesa (${n}/${mp})</span>
       <ul class="plist">${v.players.map((p, i) => `<li><span>${i+1}. ${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${truco && n === 4 ? ` <span class="muted">· Equipo ${i % 2 + 1}</span>` : ""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
@@ -901,7 +950,7 @@ function renderGame(v){
   return `<div class="topbar">
       <div class="round"><span class="label">Ronda</span><strong>${v.round}/${ROUNDS}</strong>
       <span class="wildchip" title="Comodín de esta ronda">Comodín: ${RK(v.wild)} + jokers</span></div>
-      <span class="muted">Once Rondas · Sala ${esc(v.code)}</span>
+      <span class="muted">Once Rondas · ${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>
     </div>
     <div class="players">${players}</div>
     ${outBanner}
@@ -964,6 +1013,10 @@ function bind(){
   const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
   on("#create", () => { if (readName()) createRoom("once"); });
   on("#createTruco", () => { if (readName()) createRoom("truco"); });
+  on("#offOnce", () => { if (readName()) playOffline("once"); });
+  on("#offTruco", () => { if (readName()) playOffline("truco"); });
+  on("#home", goHome);
+  on("#install", async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch(e){} installEvt = null; render(); });
   on("#tPlay", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"play", id}); } });
   document.querySelectorAll("[data-call]").forEach(b => b.onclick = () => {
     const k = b.dataset.call;
@@ -1011,6 +1064,10 @@ function bind(){
 }
 window.addEventListener("beforeunload", e => { if (S.isHost && G && G.phase !== "lobby" && G.phase !== "gameOver"){ e.preventDefault(); e.returnValue = ""; } });
 render();
+/* Guarda la app en el dispositivo para abrirla sin internet (solo en https, por ejemplo GitHub Pages). */
+if ("serviceWorker" in navigator && window.isSecureContext && location.protocol.startsWith("http")){
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
 </script>
 </body>
 </html>
