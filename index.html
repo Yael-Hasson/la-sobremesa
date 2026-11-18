@@ -17,6 +17,7 @@
   --face:#f8f3e7; --face-edge:#d9cfb8; --ink:#1d1b17;
   --brass:#e2ac45; --brass-ink:#2a1d05;
   --s0:#b86e00; --s1:#4247a8; --s2:#0b7685; --s3:#2c7a32; --s4:#bd3326; --joker:#7b3aa3;
+  --t-esp:#2d5a87; --t-bas:#3d6e26; --t-oro:#a87200; --t-cop:#b3302a;
   --danger:#f08a7a;
   --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
@@ -125,6 +126,29 @@ details ul{padding-left:1.2em; margin:.6em 0 0; display:flex; flex-direction:col
 .code{font-family:var(--f-display); font-size:2rem; font-weight:800; letter-spacing:.18em; color:var(--brass)}
 .plist{display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none}
 .plist li{display:flex; justify-content:space-between; gap:10px; padding:8px 10px; background:rgba(0,0,0,.2); border-radius:6px}
+/* Truco */
+.tcard .sm,.tcard .big{color:var(--c)}
+.tcard svg{width:1em; height:1em; fill:currentColor; display:block}
+.tcard .big{padding-top:4%}
+.tcard .tnm{position:absolute; left:0; right:0; bottom:5px; text-align:center; font-size:calc(var(--card-w) * .12); letter-spacing:.05em; text-transform:uppercase; font-weight:700; opacity:.85; font-family:var(--f-body)}
+.tscore{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.tside{padding:12px 14px; border-radius:10px; background:rgba(0,0,0,.22); border:1px solid var(--rim); display:flex; flex-direction:column; gap:6px; min-width:0}
+.tside.us{border-color:var(--brass)}
+.tside .pts{font-family:var(--f-display); font-size:2.2rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1}
+.tside .who{font-size:.85rem; color:var(--muted); overflow-wrap:anywhere}
+.tbar{height:8px; border-radius:4px; background:rgba(0,0,0,.35); position:relative; overflow:hidden}
+.tbar i{position:absolute; top:0; bottom:0; left:0; background:var(--brass)}
+.tbar::after{content:""; position:absolute; left:calc(50% - 1px); top:0; bottom:0; width:2px; background:var(--table)}
+.bazas{display:grid; grid-template-columns:minmax(56px, max-content) repeat(3, minmax(0, 1fr)); gap:8px 10px; align-items:center; --card-w:clamp(40px, 11vw, 58px)}
+.bazas .bh{font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; text-align:center}
+.bazas .bn{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; max-width:120px}
+.bazas .cell{display:grid; place-items:center}
+.bazas .slot{width:var(--card-w); aspect-ratio:5/7; border:2px dashed var(--rim); border-radius:7px; opacity:.6}
+.bazas .won .card{box-shadow:0 0 0 3px var(--brass), 0 4px 10px rgba(0,0,0,.35)}
+.calls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
+.calls .alt{background:var(--face); color:var(--ink)}
+.calls .warn{background:var(--danger); color:var(--ink)}
+.games{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px}
 @media (prefers-reduced-motion: reduce){ .card{transition:none} }
 @media (max-width:520px){ .hand .card.sel{transform:translateY(-8px)} .table{gap:14px} }
 </style>
@@ -145,6 +169,8 @@ const SUITS = [
 ];
 const RK = r => r===11?"J":r===12?"Q":r===13?"K":String(r);
 const ROUNDS = 11, MAXP = 7;
+const maxP = g => g === "truco" ? 4 : 7;
+const GAME_NAME = {once:"Once Rondas", truco:"Truco"};
 const isWild = (c, wr) => !!c.j || c.r === wr;
 const cardVal = (c, wr) => c.j ? 50 : c.r === wr ? 20 : c.r;
 
@@ -238,11 +264,11 @@ const PREFIX = "la-sobremesa-v1-";
 let G = null;
 const BOT_NAMES = ["Lupe (bot)", "Tito (bot)", "Nena (bot)", "Pepa (bot)", "Rulo (bot)", "Chela (bot)"];
 
-function hostInit(){
-  G = { phase:"lobby", players:[], round:0, wild:3, dealer:0, turn:0, deck:[], discard:[], wentOut:null, finalLeft:0, lastDraw:{}, log:[], reveal:null };
+function hostInit(game){
+  G = { game: game || "once", phase:"lobby", players:[], round:0, wild:3, dealer:0, turn:0, deck:[], discard:[], wentOut:null, finalLeft:0, lastDraw:{}, log:[], reveal:null };
   G.players.push({pid:S.pid, name:S.name, hand:[], total:0, rounds:[], online:true, bot:false});
 }
-function addLog(msg){ G.log.unshift(msg); G.log = G.log.slice(0, 6); }
+function addLog(msg){ G.log.unshift(msg); G.log = G.log.slice(0, 8); }
 
 function startGame(){
   G.players.forEach(p => { p.total = 0; p.rounds = []; p.hand = []; });
@@ -268,14 +294,19 @@ function drawFromDeck(p){
 function act(pi, a){
   const p = G.players[pi];
   if (!p) return "Jugador desconocido.";
-  if (a.t === "start"){ if (pi !== 0 || G.phase !== "lobby") return; if (G.players.length < 2) return "Hacen falta al menos 2 jugadores."; startGame(); return; }
-  if (a.t === "addBot"){ if (pi !== 0 || G.phase !== "lobby") return; if (G.players.length >= MAXP) return "La mesa está llena.";
+  if (a.t === "start"){ if (pi !== 0 || G.phase !== "lobby") return;
+    if (G.game === "truco"){ if (G.players.length !== 2 && G.players.length !== 4) return "El truco se juega de a 2 o de a 4."; trucoStart(); return; }
+    if (G.players.length < 2) return "Hacen falta al menos 2 jugadores."; startGame(); return; }
+  if (a.t === "addBot"){ if (pi !== 0 || G.phase !== "lobby") return; if (G.players.length >= maxP(G.game)) return "La mesa está llena.";
     const used = new Set(G.players.map(x=>x.name)); const nm = BOT_NAMES.find(x=>!used.has(x)) || "Bot";
     G.players.push({pid:"bot-"+Math.random().toString(36).slice(2,8), name:nm, hand:[], total:0, rounds:[], online:true, bot:true}); return; }
   if (a.t === "kick"){ if (pi !== 0 || G.phase !== "lobby") return; const k = G.players.findIndex(x=>x.pid===a.pid); if (k > 0){ const c = S.conns.get(a.pid); G.players.splice(k,1); if (c) { try{ c.send({t:"kicked"}); }catch(e){} } } return; }
   if (a.t === "next"){ if (pi !== 0 || G.phase !== "roundEnd") return; startRound(); return; }
   if (a.t === "again"){ if (pi !== 0 || G.phase !== "gameOver") return; G.phase = "lobby"; G.players.forEach(x=>{x.hand=[];}); return; }
-  if (a.t === "autoplay"){ if (pi !== 0) return; const k = G.players.findIndex(x=>x.pid===a.pid); if (k === G.turn && (G.phase==="draw"||G.phase==="discard")) botMove(k); return; }
+  if (a.t === "autoplay"){ if (pi !== 0) return; const k = G.players.findIndex(x=>x.pid===a.pid);
+    if (G.game === "truco"){ if (G.phase === "play" && tActor() === k) tBot(k); return; }
+    if (k === G.turn && (G.phase==="draw"||G.phase==="discard")) botMove(k); return; }
+  if (G.game === "truco") return trucoAct(pi, a);
   if (G.turn !== pi) return "No es tu turno.";
   if (a.t === "drawDeck"){ if (G.phase !== "draw") return; drawFromDeck(p); G.phase = "discard"; addLog(`${p.name} robó del mazo.`); return; }
   if (a.t === "drawDiscard"){ if (G.phase !== "draw" || !G.discard.length) return; const c = G.discard.pop(); p.hand.push(c); G.lastDraw[p.pid] = c.id; G.phase = "discard"; addLog(`${p.name} tomó ${cardName(c)} del descarte.`); return; }
@@ -334,6 +365,13 @@ function botMove(pi){
 let botTimer = null;
 function scheduleBots(){
   clearTimeout(botTimer);
+  if (G && G.game === "truco"){
+    if (G.phase === "handEnd"){ botTimer = setTimeout(() => { if (G.phase === "handEnd"){ tDeal(); hostSync(); } }, 3800); return; }
+    if (G.phase !== "play") return;
+    const a = tActor(), p = G.players[a];
+    if (p && p.bot) botTimer = setTimeout(() => { if (G.phase === "play" && tActor() === a){ tBot(a); hostSync(); } }, 1000);
+    return;
+  }
   if (!G || (G.phase !== "draw" && G.phase !== "discard")) return;
   const p = G.players[G.turn];
   if (!p || !p.bot) return;
@@ -341,9 +379,11 @@ function scheduleBots(){
 }
 
 function viewFor(pi){
+  if (G.game === "truco") return Object.assign({game:"truco", phase:G.phase, me:pi, code:S.code, log:G.log,
+    players:G.players.map(p => ({name:p.name, pid:p.pid, online:p.online, bot:p.bot}))}, trucoView(pi));
   const me = G.players[pi];
   return {
-    phase:G.phase, round:G.round, wild:G.wild, turn:G.turn, me:pi, code:S.code,
+    game:"once", phase:G.phase, round:G.round, wild:G.wild, turn:G.turn, me:pi, code:S.code,
     dealer:G.dealer, wentOut:G.wentOut, deckCount:G.deck.length,
     top:G.discard[G.discard.length - 1] || null,
     hand: me ? me.hand : [], lastDraw: me ? G.lastDraw[me.pid] : null,
@@ -367,7 +407,7 @@ function hostHandle(conn, msg){
     if (!pid || pid === S.pid){ conn.send({t:"error", m:"No puedes unirte a tu propia sala desde la misma pestaña."}); return; }
     if (!p){
       if (G.phase !== "lobby"){ conn.send({t:"error", m:"La partida ya empezó. Pide al anfitrión que abra una sala nueva."}); return; }
-      if (G.players.length >= MAXP){ conn.send({t:"error", m:"La mesa está llena (máximo 7)."}); return; }
+      if (G.players.length >= maxP(G.game)){ conn.send({t:"error", m:`La mesa está llena (máximo ${maxP(G.game)}).`}); return; }
       p = {pid, name, hand:[], total:0, rounds:[], online:true, bot:false}; G.players.push(p);
       addLog(`${name} se unió.`);
     } else { p.online = true; if (G.phase === "lobby") p.name = name; addLog(`${p.name} volvió a conectarse.`); }
@@ -378,11 +418,235 @@ function hostHandle(conn, msg){
   if (msg.t === "act"){ const err = act(pi, msg.a || {}); if (err) conn.send({t:"error", m:err}); hostSync(); }
 }
 
+/* ===================== Truco argentino ===================== */
+const TS = [
+  {n:"Espadas", c:"var(--t-esp)"}, {n:"Bastos", c:"var(--t-bas)"},
+  {n:"Oros", c:"var(--t-oro)"}, {n:"Copas", c:"var(--t-cop)"},
+];
+const TSVG = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 1h2l1 3v11h-4V4z"/><path d="M6 15h12v2H6z"/><path d="M10.5 17h3v4h-3z"/><circle cx="12" cy="22" r="1.6"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 2.5c2.6-1.4 6 .3 6 3.3 0 1-.4 1.8-.9 2.6l-.6 13.1h-3.6L9.7 8.6C8.4 7 8 4 9.5 2.5z"/><circle cx="10.4" cy="11" r="1.2" fill="var(--face)"/><circle cx="13.9" cy="15" r="1.2" fill="var(--face)"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6.2" fill="var(--face)"/><circle cx="12" cy="12" r="3.4"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16c0 5.5-3.3 9-6.5 9.8V18H17v3H7v-3h3.5v-5.2C7.3 12 4 8.5 4 3z"/></svg>',
+];
+const TNAME = {2:"Truco", 3:"Retruco", 4:"Vale cuatro"};
+const ENAME = {envido:"Envido", real:"Real envido", falta:"Falta envido"};
+
+/* Jerarquía: ancho de espada, ancho de basto, 7 de espada, 7 de oro, treses, doses, anchos falsos, 12, 11, 10, 7 falsos, 6, 5, 4 */
+function tPower(c){
+  const r = c.r, s = c.s;
+  if (r === 1 && s === 0) return 14; if (r === 1 && s === 1) return 13;
+  if (r === 7 && s === 0) return 12; if (r === 7 && s === 2) return 11;
+  return {3:10, 2:9, 1:8, 12:7, 11:6, 10:5, 7:4, 6:3, 5:2, 4:1}[r];
+}
+function tEnvido(hand){
+  const v = c => c.r >= 10 ? 0 : c.r; let best = 0;
+  for (let i = 0; i < hand.length; i++){
+    best = Math.max(best, v(hand[i]));
+    for (let j = i+1; j < hand.length; j++) if (hand[i].s === hand[j].s) best = Math.max(best, 20 + v(hand[i]) + v(hand[j]));
+  }
+  return best;
+}
+function tDeck(){
+  const d = []; let id = 0;
+  for (let s = 0; s < 4; s++) for (const r of [1,2,3,4,5,6,7,10,11,12]) d.push({id:id++, s, r});
+  for (let i = d.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [d[i], d[j]] = [d[j], d[i]]; }
+  return d;
+}
+const tName = pi => G.players[pi].name;
+const tTeamNames = team => G.players.filter((p, i) => i % 2 === team).map(p => p.name).join(" y ");
+
+function trucoStart(){
+  G.t = {scores:[0,0], target:30, dealer:G.players.length - 1, winner:null};
+  G.log = []; tDeal();
+}
+function tDeal(){
+  const T = G.t, N = G.players.length;
+  T.dealer = (T.dealer + 1) % N; T.mano = (T.dealer + 1) % N;
+  const d = tDeck(); T.hands = []; T.dealt = [];
+  for (let p = 0; p < N; p++){ T.hands[p] = [d.pop(), d.pop(), d.pop()]; T.dealt[p] = T.hands[p].slice(); }
+  T.bazas = [{plays:[], res:null, winner:null}]; T.turn = T.mano;
+  T.level = 1; T.canRaise = null; T.tPend = null; T.ePend = null; T.envDone = false; T.last = null;
+  G.phase = "play";
+  addLog(`Nueva mano: reparte ${tName(T.dealer)}, es mano ${tName(T.mano)}.`);
+}
+function tActor(){ const T = G.t; return T.ePend ? T.ePend.resp : T.tPend ? T.tPend.resp : T.turn; }
+function tCanEnvido(pi){
+  const T = G.t;
+  if (T.envDone || T.ePend || T.bazas.length !== 1 || T.level !== 1) return false;
+  if (T.bazas[0].plays.some(x => x.pi === pi)) return false;
+  return T.tPend ? (T.tPend.resp === pi && T.tPend.level === 2) : T.turn === pi;
+}
+function envNext(chain){
+  const o = [], ne = chain.filter(k => k === "envido").length;
+  if (chain.includes("falta")) return o;
+  if (!chain.includes("real") && ne < 2) o.push("envido");
+  if (!chain.includes("real")) o.push("real");
+  o.push("falta"); return o;
+}
+function tAvail(pi){
+  const T = G.t; if (!T || G.phase !== "play") return [];
+  if (T.ePend) return T.ePend.resp === pi ? ["quiero", "noquiero", ...envNext(T.ePend.chain).map(k => "e:" + k)] : [];
+  const out = [];
+  if (T.tPend){
+    if (T.tPend.resp !== pi) return [];
+    out.push("quiero", "noquiero");
+    if (T.tPend.level < 4) out.push("t:" + (T.tPend.level + 1));
+    if (tCanEnvido(pi)) envNext([]).forEach(k => out.push("e:" + k));
+    return out;
+  }
+  if (T.turn !== pi) return [];
+  out.push("play");
+  if (tCanEnvido(pi)) envNext([]).forEach(k => out.push("e:" + k));
+  if (T.level < 4 && (T.canRaise === null || T.canRaise === pi % 2)) out.push("t:" + (T.level + 1));
+  out.push("mazo");
+  return out;
+}
+function envValue(chain){
+  if (chain.includes("falta")) return G.t.target - Math.max(...G.t.scores);
+  return chain.reduce((s, k) => s + (k === "real" ? 3 : 2), 0);
+}
+function tAward(team, pts){
+  const T = G.t; T.scores[team] += pts;
+  if (T.scores[team] >= T.target){ T.scores[team] = Math.min(T.scores[team], T.target); T.winner = team; G.phase = "gameOver"; T.tPend = null; T.ePend = null;
+    addLog(`¡${tTeamNames(team)} ${G.players.length === 2 ? "gana" : "ganan"} la partida!`); return true; }
+  return false;
+}
+function tEndHand(team, pts, why){
+  const T = G.t; T.tPend = null; T.ePend = null;
+  T.last = {team, pts, why};
+  addLog(`Mano para ${tTeamNames(team)}: +${pts} (${why}).`);
+  if (!tAward(team, pts)) G.phase = "handEnd";
+}
+function tHandWinner(res){
+  const T = G.t, w = [0,0];
+  res.forEach(r => { if (r >= 0) w[r]++; });
+  if (w[0] >= 2) return 0; if (w[1] >= 2) return 1;
+  if (res.length >= 2){
+    if (res[0] === -1 && res[1] >= 0) return res[1];
+    if (res[0] >= 0 && res[1] === -1) return res[0];
+  }
+  if (res.length === 3){
+    if (res[2] >= 0) return res[2];
+    return res[0] >= 0 ? res[0] : T.mano % 2;
+  }
+  return null;
+}
+function tAfterPlay(){
+  const T = G.t, N = G.players.length, b = T.bazas[T.bazas.length - 1];
+  if (b.plays.length < N){ T.turn = (T.turn + 1) % N; return; }
+  let top = -1, best = [];
+  for (const pl of b.plays){ const v = tPower(pl.c); if (v > top){ top = v; best = [pl]; } else if (v === top) best.push(pl); }
+  const teams = new Set(best.map(x => x.pi % 2));
+  b.res = teams.size > 1 ? -1 : best[0].pi % 2; b.winner = teams.size > 1 ? null : best[0].pi;
+  addLog(b.res === -1 ? `Baza ${T.bazas.length}: parda.` : `Baza ${T.bazas.length}: la gana ${tName(b.winner)}.`);
+  const w = tHandWinner(T.bazas.map(x => x.res));
+  if (w !== null){ tEndHand(w, T.level, T.level > 1 ? `${TNAME[T.level]} querido` : "ganó las bazas"); return; }
+  T.bazas.push({plays:[], res:null, winner:null});
+  T.turn = b.res === -1 ? T.mano : b.winner;
+}
+function tResolveEnvido(pi, yes){
+  const T = G.t, E = T.ePend, N = G.players.length;
+  T.ePend = null; T.envDone = true;
+  if (!yes){
+    const pts = E.chain.length === 1 ? 1 : envValue(E.chain.slice(0, -1));
+    addLog(`${tName(pi)}: No quiero. +${pts} para ${tTeamNames(E.by)}.`);
+    tAward(E.by, pts); return;
+  }
+  const pts = envValue(E.chain);
+  let best = -1, bestP = null; const lines = [];
+  for (let k = 0; k < N; k++){ const p = (T.mano + k) % N, v = tEnvido(T.dealt[p]); lines.push(`${tName(p)} ${v}`); if (v > best){ best = v; bestP = p; } }
+  addLog(`${tName(pi)}: Quiero. Envido: ${lines.join(", ")}. Gana ${tName(bestP)} (+${pts}).`);
+  tAward(bestP % 2, pts);
+}
+function trucoAct(pi, a){
+  const T = G.t, N = G.players.length, av = tAvail(pi);
+  if (a.t === "play"){
+    if (!av.includes("play")) return T.tPend || T.ePend ? "Primero hay que responder el canto." : "No es tu turno.";
+    const k = T.hands[pi].findIndex(c => c.id === a.id); if (k < 0) return "Esa carta no está en tu mano.";
+    const [c] = T.hands[pi].splice(k, 1); T.bazas[T.bazas.length - 1].plays.push({pi, c});
+    tAfterPlay(); return;
+  }
+  if (a.t === "call"){
+    const k = String(a.k || ""); if (!av.includes(k)) return "Ahora no puedes cantar eso.";
+    if (k.startsWith("e:")){
+      const kind = k.slice(2);
+      if (T.ePend){ T.ePend.chain.push(kind); T.ePend.by = pi % 2; T.ePend.caller = pi; T.ePend.resp = (pi + 1) % N; }
+      else T.ePend = {chain:[kind], by:pi % 2, caller:pi, resp:(pi + 1) % N};
+      addLog(`${tName(pi)}: ¡${ENAME[kind]}!`); return;
+    }
+    const lv = Number(k.slice(2));
+    if (T.tPend) T.level = T.tPend.level;   // subir la apuesta acepta la anterior
+    T.tPend = {level:lv, by:pi % 2, caller:pi, resp:(pi + 1) % N};
+    addLog(`${tName(pi)}: ¡${TNAME[lv]}!`); return;
+  }
+  if (a.t === "quiero" || a.t === "noquiero"){
+    if (!av.includes(a.t)) return "No hay nada que responder.";
+    const yes = a.t === "quiero";
+    if (T.ePend){ tResolveEnvido(pi, yes); return; }
+    const P = T.tPend; T.tPend = null;
+    if (yes){ T.level = P.level; T.canRaise = pi % 2; addLog(`${tName(pi)}: Quiero.`); }
+    else { addLog(`${tName(pi)}: No quiero.`); tEndHand(P.by, T.level, `${TNAME[P.level]} no querido`); }
+    return;
+  }
+  if (a.t === "mazo"){
+    if (!av.includes("mazo")) return "Ahora no puedes irte al mazo.";
+    addLog(`${tName(pi)} se fue al mazo.`); tEndHand(1 - pi % 2, T.level, "se fueron al mazo"); return;
+  }
+}
+/* Bot de truco: canta con buen envido, acepta según la fuerza de su mano y juega la carta justa para ganar la baza. */
+function tBot(pi){
+  const T = G.t, av = tAvail(pi), hand = T.hands[pi], env = tEnvido(T.dealt[pi]), my = pi % 2;
+  if (!av.length) return;
+  const pw = hand.map(tPower).sort((a, b) => b - a);
+  const won = T.bazas.filter(b => b.res === my).length, lost = T.bazas.filter(b => b.res === 1 - my).length;
+  const force = (pw[0] || 0) + (pw[1] || 0) * 0.5 + won * 7 - lost * 7;
+  const rnd = Math.random();
+  const call = k => trucoAct(pi, {t:"call", k});
+  if (T.ePend){
+    const ch = T.ePend.chain;
+    if (av.includes("e:falta") && env >= 33) return call("e:falta");
+    if (av.includes("e:real") && env >= 31 && rnd < .6) return call("e:real");
+    const need = ch.includes("falta") ? 30 : 23 + ch.length * 2;
+    return trucoAct(pi, {t: env >= need ? "quiero" : "noquiero"});
+  }
+  if (T.tPend){
+    if (av.some(k => k.startsWith("e:")) && env >= 27) return call(env >= 31 ? "e:real" : "e:envido");
+    const lv = T.tPend.level;
+    if (lv < 4 && av.includes("t:" + (lv + 1)) && (force >= 22 || (pw[0] === 14 && won >= 1))) return call("t:" + (lv + 1));
+    return trucoAct(pi, {t: force >= 6 + lv * 2 || rnd < .2 ? "quiero" : "noquiero"});
+  }
+  if (av.some(k => k.startsWith("e:")) && env >= 27 && rnd < .85) return call(env >= 31 ? "e:real" : "e:envido");
+  const tk = av.find(k => k.startsWith("t:"));
+  if (tk && (force >= 19 || (won >= 1 && (pw[0] || 0) >= 10) || rnd < .05)) return call(tk);
+  const b = T.bazas[T.bazas.length - 1];
+  const sorted = hand.slice().sort((x, y) => tPower(x) - tPower(y));
+  let card;
+  if (!b.plays.length) card = T.bazas.length === 1 && sorted.length === 3 ? sorted[1] : sorted[sorted.length - 1];
+  else {
+    let top = -1, topTeam = null;
+    for (const pl of b.plays){ const v = tPower(pl.c); if (v > top){ top = v; topTeam = pl.pi % 2; } else if (v === top && pl.pi % 2 !== topTeam) topTeam = -1; }
+    if (topTeam === my) card = sorted[0];
+    else card = sorted.find(c => tPower(c) > top) || sorted[0];
+  }
+  return trucoAct(pi, {t:"play", id:card.id});
+}
+function trucoView(pi){
+  const T = G.t;
+  if (!T || !T.hands) return {tr:null};
+  return {tr:{
+    scores:T.scores, target:T.target, mano:T.mano, dealer:T.dealer, actor: G.phase === "play" ? tActor() : null,
+    hand:T.hands[pi] || [], myEnv: T.dealt[pi] ? tEnvido(T.dealt[pi]) : 0, counts:T.hands.map(h => h.length),
+    bazas:T.bazas, level:T.level, tPend:T.tPend, ePend:T.ePend, avail:tAvail(pi), last:T.last, winner:T.winner,
+  }};
+}
+
 /* ===================== Red (PeerJS, de navegador a navegador) ===================== */
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from({length:5}, () => CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]).join("");
 
-function createRoom(){
+function createRoom(game){
+  if (game) S.newGame = game;
   if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
   S.busy = true; render();
   S.code = newCode();
@@ -390,7 +654,7 @@ function createRoom(){
   S.peer = peer;
   peer.on("open", () => {
     if (S.isHost) return;  // reconexión al servidor: la partida sigue igual
-    S.isHost = true; S.busy = false; hostInit(); S.screen = "game"; hostSync();
+    S.isHost = true; S.busy = false; hostInit(S.newGame); S.screen = "game"; hostSync();
   });
   peer.on("connection", conn => {
     conn.on("data", m => hostHandle(conn, m));
@@ -440,6 +704,85 @@ function cardHTML(c, wr, extra = "", attrs = ""){
   const s = SUITS[c.s], w = c.r === wr;
   return `<div class="card ${w ? "wild" : ""} ${extra}" ${attrs} style="--c:${s.c}" aria-label="${RK(c.r)} de ${s.n}${w ? ", comodín" : ""}"><span class="rk">${RK(c.r)}</span><span class="sm">${s.g}</span><span class="big">${s.g}</span></div>`;
 }
+function tCardHTML(c, extra = "", attrs = ""){
+  const s = TS[c.s];
+  return `<div class="card tcard ${extra}" ${attrs} style="--c:${s.c}" aria-label="${c.r} de ${s.n}"><span class="rk" style="color:var(--ink)">${c.r}</span><span class="sm">${TSVG[c.s]}</span><span class="big">${TSVG[c.s]}</span><span class="tnm" style="color:var(--c)">${s.n}</span></div>`;
+}
+const trucoRules = `<details><summary>Cómo se juega al Truco</summary><ul>
+  <li>Baraja española de 40 cartas (sin 8 ni 9). Cada persona recibe 3 cartas y se juegan hasta 3 bazas: gana la mano quien gana 2.</li>
+  <li><strong>De mayor a menor:</strong> 1 de espada, 1 de basto, 7 de espada, 7 de oro, los 3, los 2, 1 de copa y de oro, 12, 11, 10, 7 de copa y de basto, 6, 5 y 4.</li>
+  <li><strong>Pardas:</strong> si la primera baza es parda, gana quien gane la segunda. Si una baza posterior es parda, gana quien ganó la primera. Si las tres son pardas, gana la mano.</li>
+  <li><strong>Envido:</strong> se canta en la primera baza, antes de jugar tu carta. Dos cartas del mismo palo valen 20 más sus números (10, 11 y 12 valen 0). Si no tienes dos del mismo palo, vale tu carta más alta. En un empate gana quien es mano.</li>
+  <li>Envido vale 2, Real envido 3 y Falta envido lo que le falta al que va ganando para llegar a 30. Si no se quiere, quien cantó gana 1 o lo que ya estaba aceptado.</li>
+  <li><strong>Truco</strong> vale 2, <strong>Retruco</strong> 3 y <strong>Vale cuatro</strong> 4. Solo puede subir el equipo que aceptó la última apuesta. Si no se quiere, quien cantó gana lo que valía antes.</li>
+  <li>Si te vas al mazo, el rival gana lo que vale la mano en ese momento.</li>
+  <li>En parejas juegan 1° y 3° contra 2° y 4°. Se juega a 30: 15 malas y 15 buenas. Sin flor.</li>
+</ul></details>`;
+
+function renderTruco(v){
+  const t = v.tr, me = v.me, N = v.players.length, my = me % 2;
+  if (!t) return "";
+  const pname = i => esc(v.players[i].name);
+  const teamNames = team => v.players.map((p, i) => i).filter(i => i % 2 === team).map(i => i === me ? "tú" : pname(i)).join(" y ");
+  const side = (team, label) => { const s = t.scores[team];
+    return `<div class="tside ${team === my ? "us" : ""}"><span class="label">${label}</span><span class="pts">${s}</span>
+      <span class="who">${teamNames(team)} · ${s < 15 ? "malas" : "buenas"}</span><div class="tbar"><i style="width:${Math.min(100, s / t.target * 100)}%"></i></div></div>`; };
+  const winLabel = team => team === my ? (N === 2 ? "ti" : "tu equipo") : (N === 2 ? pname(1 - me) : "el otro equipo");
+  const actor = t.actor;
+  const pend = t.ePend ? {who:t.ePend.caller, what:ENAME[t.ePend.chain[t.ePend.chain.length - 1]], resp:t.ePend.resp}
+    : t.tPend ? {who:t.tPend.caller, what:TNAME[t.tPend.level], resp:t.tPend.resp} : null;
+  let status = "";
+  if (v.phase === "handEnd" && t.last) status = `Mano para ${winLabel(t.last.team)}: +${t.last.pts} (${esc(t.last.why)}). Repartiendo…`;
+  else if (pend) status = pend.resp === me ? `${pname(pend.who)} cantó ${pend.what}. Te toca responder`
+    : `${pend.who === me ? "Cantaste" : pname(pend.who) + " cantó"} ${pend.what}. Responde ${pname(pend.resp)}`;
+  else if (actor === me) status = "Tu turno: juega una carta o canta";
+  else if (actor !== null && actor !== undefined) status = `Turno de ${pname(actor)}`;
+  const order = []; for (let k = 1; k <= N; k++) order.push((me + k) % N);
+  const head = `<span></span>` + [0,1,2].map(i => { const b = t.bazas[i];
+    const r = b && b.res !== null ? (b.res === -1 ? "parda" : b.res === my ? (N === 2 ? "tuya" : "nuestra") : (N === 2 ? "rival" : "de ellos")) : "";
+    return `<span class="bh">Baza ${i + 1}${r ? `<br>${r}` : ""}</span>`; }).join("");
+  const rows = order.map(p => `<span class="bn">${p === me ? "Tú" : pname(p)}</span>` + [0,1,2].map(i => {
+    const b = t.bazas[i], pl = b && b.plays.find(x => x.pi === p);
+    return `<div class="cell ${pl && b.winner === p ? "won" : ""}">${pl ? tCardHTML(pl.c) : `<div class="slot"></div>`}</div>`; }).join("")).join("");
+  const chips = v.players.map((p, i) => `<div class="pchip ${i === actor ? "turn" : ""} ${!p.online ? "off" : ""}">
+      <span class="nm">${esc(p.name)}${i === me ? ' <span class="muted">(tú)</span>' : ""}</span>
+      <span class="st">${N === 4 ? `Equipo ${i % 2 + 1} · ` : ""}${t.counts[i]} cartas${i === t.mano ? " · mano" : ""}</span>
+      ${S.isHost && !p.online && !p.bot && i === actor ? `<button class="ghost" data-auto="${esc(p.pid)}" style="padding:.2em .6em;font-size:.8rem;margin-top:4px">Jugar por esta persona</button>` : ""}
+    </div>`).join("");
+  const LBL = {"e:envido":"Envido", "e:real":"Real envido", "e:falta":"Falta envido", "t:2":"Truco",
+    "t:3": t.tPend ? "Quiero retruco" : "Retruco", "t:4": t.tPend ? "Quiero vale cuatro" : "Vale cuatro",
+    quiero:"Quiero", noquiero:"No quiero", mazo: S.mazoArm ? "Confirmar: irme al mazo" : "Irse al mazo"};
+  const calls = t.avail.filter(k => k !== "play").map(k =>
+    `<button class="${k === "quiero" ? "" : k === "noquiero" ? "ghost" : k === "mazo" ? (S.mazoArm ? "warn" : "ghost") : "alt"}" data-call="${k}">${LBL[k]}</button>`).join("");
+  const canPlay = t.avail.includes("play");
+  if (S.sel !== null && !t.hand.some(c => c.id === S.sel)) S.sel = null;
+  const hand = t.hand.slice().sort((a, b) => tPower(b) - tPower(a)).map(c =>
+    tCardHTML(c, S.sel === c.id ? "sel" : "", `data-tcard="${c.id}" tabindex="0" role="button"`)).join("");
+  const lvl = t.level > 1 ? `${TNAME[t.level]} querido: ${t.level} pts` : "La mano vale 1 punto";
+  const over = v.phase === "gameOver" ? `<div class="overlay" role="dialog" aria-modal="true"><div class="panel">
+      <span class="label">Fin de la partida</span>
+      <h2>${t.winner === my ? (N === 2 ? "¡Ganaste!" : "¡Ganó tu equipo!") : `Ganó ${N === 2 ? pname(1 - me) : "el otro equipo"}`} ${t.scores[t.winner]} a ${t.scores[1 - t.winner]}</h2>
+      <p class="muted">${teamNames(t.winner)}</p>
+      <div class="row">${S.isHost ? `<button id="again">Jugar otra vez</button>` : `<p class="muted">Esperando al anfitrión…</p>`}</div>
+    </div></div>` : "";
+  return `<div class="topbar">
+      <div class="round"><span class="label">Truco a ${t.target}</span><span class="wildchip">${lvl}</span></div>
+      <span class="muted">Sala ${esc(v.code)}</span>
+    </div>
+    <div class="tscore">${side(my, N === 2 ? "Tú" : "Nosotros")}${side(1 - my, N === 2 ? "Rival" : "Ellos")}</div>
+    <div class="players">${chips}</div>
+    <section class="panel"><div class="bazas">${head}${rows}</div></section>
+    <p class="status" aria-live="polite">${status}</p>
+    ${calls ? `<div class="calls">${calls}</div>` : ""}
+    <section class="panel">
+      <div class="handbar"><span class="label">Tu mano · tu envido: ${t.myEnv}</span>
+        ${canPlay ? `<button id="tPlay" ${S.sel === null ? "disabled" : ""}>Jugar carta</button>` : ""}</div>
+      <div class="hand">${hand || `<p class="muted">Ya jugaste tus cartas.</p>`}</div>
+    </section>
+    <div class="log">${v.log.map(l => `<span>${esc(l)}</span>`).join("")}</div>
+    ${trucoRules}${over}`;
+}
+
 function sortHand(hand, wr){
   const key = c => isWild(c, wr) ? [9, c.j ? 99 : c.r, 0] : S.sort === "suit" ? [c.s, c.r, 0] : [c.r, c.s, 0];
   return hand.slice().sort((a, b) => { const x = key(a), y = key(b); return x[0]-y[0] || x[1]-y[1] || a.id - b.id; });
@@ -466,7 +809,7 @@ function renderHome(){
       <label class="label" for="nm">Tu nombre</label>
       <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
     </section>
-    <div class="grid2">
+    <div class="games">
       <section class="panel">
         <span class="label">Juego · 2 a 7 personas · unos 40 minutos</span>
         <h2>Once Rondas</h2>
@@ -476,6 +819,16 @@ function renderHome(){
         <div class="row"><button id="create" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Once Rondas"}</button></div>
       </section>
       <section class="panel">
+        <span class="label">Juego · de a 2 o de a 4 en parejas · a 30 puntos</span>
+        <h2>Truco</h2>
+        <div class="hero-fan" aria-hidden="true">${[{s:0,r:1},{s:1,r:1},{s:0,r:7},{s:2,r:7},{s:3,r:3}].map(c => tCardHTML(c)).join("")}</div>
+        <p class="muted">El truco argentino de siempre: envido, real envido, falta envido, truco, retruco y vale cuatro. Sin flor.</p>
+        <p class="muted">Para jugar en parejas hacen falta 4 personas; puedes completar con bots.</p>
+        <div class="row"><button id="createTruco" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Truco"}</button></div>
+      </section>
+    </div>
+    <div class="grid2">
+      <section class="panel">
         <h2>Unirme a una sala</h2>
         <p class="muted">Pide el código a quien abrió la mesa.</p>
         <label class="label" for="code">Código de la sala</label>
@@ -483,14 +836,18 @@ function renderHome(){
         <div class="row"><button id="join" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Unirme"}</button></div>
       </section>
     </div>
-    ${rulesHTML}`;
+    ${rulesHTML}${trucoRules}`;
 }
 
 function renderLobby(v){
   const host = S.isHost;
   const link = location.origin + location.pathname + "?sala=" + v.code;
   const shareable = location.protocol.startsWith("http");
-  return `<header class="hero"><span class="label">La Sobremesa · Sala</span><h1>Once Rondas</h1></header>
+  const truco = v.game === "truco", n = v.players.length, mp = maxP(v.game);
+  const ok = truco ? (n === 2 || n === 4) : n >= 2;
+  const hint = truco ? (n === 3 ? "Para empezar hacen falta 2 o 4 personas: añade un bot o espera a una más." : n < 2 ? "Espera a que alguien se una o añade un bot." : n === 4 ? "Parejas: 1° y 3° contra 2° y 4°." : "")
+    : n < 2 ? "Espera a que alguien se una o añade un bot para practicar." : "";
+  return `<header class="hero"><span class="label">La Sobremesa · Sala</span><h1>${GAME_NAME[v.game]}</h1></header>
   <div class="grid2">
     <section class="panel">
       <span class="label">Código para unirse</span>
@@ -498,14 +855,14 @@ function renderLobby(v){
       ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p><div class="row"><button class="ghost" id="copy">Copiar enlace</button></div>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
     </section>
     <section class="panel">
-      <span class="label">En la mesa (${v.players.length}/${MAXP})</span>
-      <ul class="plist">${v.players.map((p, i) => `<li><span>${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
-      ${host ? `<div class="row"><button id="start" ${v.players.length < 2 ? "disabled" : ""}>Empezar partida</button><button class="ghost" id="bot" ${v.players.length >= MAXP ? "disabled" : ""}>Añadir bot</button></div>
-        ${v.players.length < 2 ? `<p class="muted">Espera a que alguien se una o añade un bot para practicar.</p>` : ""}`
-        : `<p class="muted">Esperando a que el anfitrión empiece la partida…</p>`}
+      <span class="label">En la mesa (${n}/${mp})</span>
+      <ul class="plist">${v.players.map((p, i) => `<li><span>${i+1}. ${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${truco && n === 4 ? ` <span class="muted">· Equipo ${i % 2 + 1}</span>` : ""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
+      ${host ? `<div class="row"><button id="start" ${ok ? "" : "disabled"}>Empezar partida</button><button class="ghost" id="bot" ${n >= mp ? "disabled" : ""}>Añadir bot</button></div>
+        ${hint ? `<p class="muted">${hint}</p>` : ""}`
+        : `<p class="muted">Esperando a que el anfitrión empiece la partida…</p>${truco && n === 4 ? `<p class="muted">Parejas: 1° y 3° contra 2° y 4°.</p>` : ""}`}
     </section>
   </div>
-  ${rulesHTML}`;
+  ${truco ? trucoRules : rulesHTML}`;
 }
 
 let penCache = {key:"", pen:0, outs:new Set()};
@@ -599,13 +956,33 @@ function render(){
   const app = $("#app");
   if (S.screen === "home" || !S.view) app.innerHTML = renderHome();
   else if (S.view.phase === "lobby") app.innerHTML = renderLobby(S.view);
-  else app.innerHTML = renderGame(S.view);
+  else app.innerHTML = S.view.game === "truco" ? renderTruco(S.view) : renderGame(S.view);
   bind();
 }
 function readName(){ const el = $("#nm"); const n = (el ? el.value : S.name).trim().slice(0, 20); if (!n){ toast("Escribe tu nombre primero."); el && el.focus(); return false; } S.name = n; try{ localStorage.setItem("cv_name", n); }catch(e){} return true; }
 function bind(){
   const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
-  on("#create", () => { if (readName()) createRoom(); });
+  on("#create", () => { if (readName()) createRoom("once"); });
+  on("#createTruco", () => { if (readName()) createRoom("truco"); });
+  on("#tPlay", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"play", id}); } });
+  document.querySelectorAll("[data-call]").forEach(b => b.onclick = () => {
+    const k = b.dataset.call;
+    if (k === "mazo"){
+      if (!S.mazoArm){ S.mazoArm = true; render(); clearTimeout(S.mazoT); S.mazoT = setTimeout(() => { S.mazoArm = false; render(); }, 3500); return; }
+      S.mazoArm = false; clearTimeout(S.mazoT); send({t:"mazo"}); return;
+    }
+    if (k === "quiero" || k === "noquiero") send({t:k}); else send({t:"call", k});
+  });
+  document.querySelectorAll("[data-tcard]").forEach(el => {
+    const pick = () => {
+      const t = S.view.tr; if (!t || !t.avail.includes("play")){ toast(t && (t.tPend || t.ePend) ? "Primero hay que responder el canto." : "Espera tu turno."); return; }
+      const id = Number(el.dataset.tcard);
+      if (S.sel === id){ S.sel = null; send({t:"play", id}); return; }  // doble toque = jugar
+      S.sel = id; render();
+    };
+    el.onclick = pick;
+    el.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); pick(); } };
+  });
   on("#join", () => { if (readName()) joinRoom($("#code").value); });
   const codeEl = $("#code"); if (codeEl) codeEl.onkeydown = e => { if (e.key === "Enter" && readName()) joinRoom(codeEl.value); };
   on("#start", () => send({t:"start"}));
