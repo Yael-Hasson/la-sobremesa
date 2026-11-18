@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>La Sobremesa</title>
+<meta name="description" content="Juegos de cartas online y gratis para jugar con familia y amigos desde cualquier lugar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* Layout: one card table. Top bar with round and scores, the table (deck + discard) in the middle, your hand along the bottom. */
+:root{
+  --table:#1a2a22; --table-2:#223529; --rim:#33493b;
+  --ink-on-table:#eef2e9; --muted:#a8b8aa;
+  --face:#f8f3e7; --face-edge:#d9cfb8; --ink:#1d1b17;
+  --brass:#e2ac45; --brass-ink:#2a1d05;
+  --s0:#b86e00; --s1:#4247a8; --s2:#0b7685; --s3:#2c7a32; --s4:#bd3326; --joker:#7b3aa3;
+  --danger:#f08a7a;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --card-w:clamp(54px, 13vw, 76px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0; background:radial-gradient(ellipse at 50% 30%, var(--table-2), var(--table) 70%) fixed, var(--table);
+  color:var(--ink-on-table); font:16px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:max(12px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+}
+.wrap{max-width:1040px; margin:0 auto; display:flex; flex-direction:column; gap:16px}
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0; line-height:1.1}
+h1{font-size:clamp(2.2rem, 7vw, 3.6rem); font-weight:800; letter-spacing:-.02em}
+h2{font-size:1.4rem; font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.label{font-size:.75rem; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); font-weight:700}
+button,input{font:inherit}
+button{
+  cursor:pointer; border:0; border-radius:6px; padding:.7em 1.1em; font-weight:700;
+  background:var(--brass); color:var(--brass-ink); font-family:var(--f-display);
+}
+button.ghost{background:transparent; color:var(--ink-on-table); box-shadow:inset 0 0 0 2px var(--rim)}
+button:disabled{opacity:.45; cursor:not-allowed}
+button:focus-visible,input:focus-visible,.card:focus-visible,.pile:focus-visible{outline:3px solid var(--brass); outline-offset:3px}
+input{
+  width:100%; background:rgba(0,0,0,.25); color:var(--ink-on-table); border:2px solid var(--rim);
+  border-radius:6px; padding:.65em .8em;
+}
+.panel{background:rgba(0,0,0,.22); border:1px solid var(--rim); border-radius:10px; padding:20px; display:flex; flex-direction:column; gap:14px; min-width:0}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:16px}
+.toast{position:fixed; left:50%; bottom:max(20px, env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--face); color:var(--ink); padding:.7em 1.1em; border-radius:8px; font-weight:700; z-index:50; max-width:calc(100% - 32px)}
+
+/* Hero */
+.hero{display:flex; flex-direction:column; gap:10px; padding-top:12px}
+.hero-fan{display:flex; gap:0; margin-top:6px; height:calc(var(--card-w) * 1.2)}
+.hero-fan .card{margin-right:calc(var(--card-w) * -0.45); transform-origin:bottom center}
+.hero-fan .card:nth-child(1){transform:rotate(-14deg) translateY(8px)}
+.hero-fan .card:nth-child(2){transform:rotate(-7deg) translateY(2px)}
+.hero-fan .card:nth-child(4){transform:rotate(7deg) translateY(2px)}
+.hero-fan .card:nth-child(5){transform:rotate(14deg) translateY(8px)}
+
+/* Cards */
+.card{
+  width:var(--card-w); aspect-ratio:5/7; max-width:100%; flex:none; position:relative;
+  background:var(--face); color:var(--c, var(--ink)); border-radius:7px;
+  box-shadow:0 1px 0 var(--face-edge), 0 4px 10px rgba(0,0,0,.35);
+  font-family:var(--f-display); user-select:none; border:0; padding:0; text-align:left;
+  transition:transform .15s ease;
+}
+.card .rk{position:absolute; top:4px; left:6px; font-weight:800; font-size:calc(var(--card-w) * .27); line-height:1}
+.card .sm{position:absolute; top:calc(var(--card-w) * .3); left:6px; font-size:calc(var(--card-w) * .2); line-height:1}
+.card .big{position:absolute; inset:0; display:grid; place-items:center; font-size:calc(var(--card-w) * .55); padding-top:18%}
+.card.wild::after{
+  content:"COMODÍN"; position:absolute; left:0; right:0; bottom:5px; text-align:center;
+  font-size:calc(var(--card-w) * .12); letter-spacing:.06em; font-weight:800; color:var(--joker)
+}
+.card.joker{--c:var(--joker); background:repeating-linear-gradient(135deg, var(--face) 0 8px, #efe6f5 8px 16px)}
+.card.joker .rk{font-size:calc(var(--card-w) * .16); letter-spacing:.04em}
+.card.back{background:repeating-linear-gradient(45deg, #7a2f2a 0 6px, #8c3a33 6px 12px); box-shadow:inset 0 0 0 4px var(--face), 0 4px 10px rgba(0,0,0,.35)}
+.hand .card{cursor:pointer}
+.hand .card.sel{transform:translateY(-14px); box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45)}
+.hand .card.new{box-shadow:0 0 0 2px #fff8, 0 4px 10px rgba(0,0,0,.35)}
+.hand .card .out{position:absolute; top:-9px; right:-6px; background:var(--brass); color:var(--brass-ink); font-size:10px; font-weight:800; padding:2px 5px; border-radius:4px; font-family:var(--f-body)}
+
+/* Game */
+.topbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+.round{display:flex; gap:14px; align-items:baseline; flex-wrap:wrap}
+.round strong{font-family:var(--f-display); font-size:1.6rem}
+.wildchip{display:inline-flex; gap:8px; align-items:center; background:var(--face); color:var(--joker); padding:4px 10px; border-radius:999px; font-weight:800; font-family:var(--f-display)}
+.players{display:flex; gap:8px; flex-wrap:wrap}
+.pchip{display:flex; flex-direction:column; gap:2px; padding:8px 12px; border-radius:8px; background:rgba(0,0,0,.22); border:2px solid transparent; min-width:110px}
+.pchip.turn{border-color:var(--brass)}
+.pchip.off{opacity:.55}
+.pchip .nm{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px}
+.pchip .st{font-size:.82rem; color:var(--muted); font-variant-numeric:tabular-nums}
+.tag{font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:1px 6px; border-radius:4px; background:var(--brass); color:var(--brass-ink); margin-left:6px}
+.table{display:flex; gap:22px; justify-content:center; align-items:flex-end; padding:22px 12px; border-radius:16px; background:rgba(0,0,0,.18); border:1px solid var(--rim); flex-wrap:wrap}
+.pile{display:flex; flex-direction:column; align-items:center; gap:6px; background:none; padding:0; color:var(--ink-on-table); font-family:var(--f-body); font-weight:400}
+.pile:disabled{opacity:1; cursor:default}
+.pile.can .card{box-shadow:0 0 0 3px var(--brass), 0 6px 14px rgba(0,0,0,.4)}
+.pile .empty{width:var(--card-w); aspect-ratio:5/7; border:2px dashed var(--rim); border-radius:7px}
+.status{text-align:center; font-family:var(--f-display); font-size:1.15rem; font-weight:700; min-height:1.6em}
+.banner{background:var(--brass); color:var(--brass-ink); padding:8px 14px; border-radius:8px; font-weight:700; text-align:center}
+.hand{display:flex; flex-wrap:wrap; gap:8px; padding-top:16px; justify-content:center}
+.handbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between}
+.log{font-size:.88rem; color:var(--muted); display:flex; flex-direction:column; gap:2px}
+.scores{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+.scores th,.scores td{padding:6px 8px; border-bottom:1px solid var(--rim); text-align:right; white-space:nowrap}
+.scores th:first-child,.scores td:first-child{text-align:left}
+.tablewrap{overflow-x:auto}
+.reveal{display:flex; flex-direction:column; gap:14px}
+.reveal .who{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.reveal .mini{--card-w:42px; display:flex; flex-wrap:wrap; gap:4px}
+.overlay{position:fixed; inset:0; background:rgba(8,14,10,.78); display:grid; place-items:center; z-index:40; padding:16px; overflow:auto}
+.overlay .panel{max-width:720px; width:100%; background:var(--table); max-height:calc(100% - 16px); overflow:auto}
+details{border-top:1px solid var(--rim); padding-top:12px}
+summary{cursor:pointer; font-weight:700; font-family:var(--f-display)}
+details ul{padding-left:1.2em; margin:.6em 0 0; display:flex; flex-direction:column; gap:4px; max-width:65ch}
+.code{font-family:var(--f-display); font-size:2rem; font-weight:800; letter-spacing:.18em; color:var(--brass)}
+.plist{display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none}
+.plist li{display:flex; justify-content:space-between; gap:10px; padding:8px 10px; background:rgba(0,0,0,.2); border-radius:6px}
+@media (prefers-reduced-motion: reduce){ .card{transition:none} }
+@media (max-width:520px){ .hand .card.sel{transform:translateY(-8px)} .table{gap:14px} }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ===================== Reglas y cartas ===================== */
+const SUITS = [
+  {g:"☀", n:"Soles", c:"var(--s0)"},
+  {g:"☾", n:"Lunas", c:"var(--s1)"},
+  {g:"≈", n:"Olas",  c:"var(--s2)"},
+  {g:"✿", n:"Flores",c:"var(--s3)"},
+  {g:"ϟ", n:"Rayos", c:"var(--s4)"},
+];
+const RK = r => r===11?"J":r===12?"Q":r===13?"K":String(r);
+const ROUNDS = 11, MAXP = 7;
+const isWild = (c, wr) => !!c.j || c.r === wr;
+const cardVal = (c, wr) => c.j ? 50 : c.r === wr ? 20 : c.r;
+
+/* Menor puntuación posible de una mano: la combina sola en grupos y escaleras. */
+function bestPenalty(hand, wr){
+  const nat = hand.filter(c => !isWild(c, wr));
+  const wv = hand.filter(c => isWild(c, wr)).map(c => cardVal(c, wr));
+  const W = wv.length, wSum = wv.reduce((a,b)=>a+b,0);
+  if (!nat.length) return W >= 3 ? 0 : wSum;
+  const n = nat.length, memo = new Map();
+  function f(mask, k){
+    if (!mask) return 0;
+    const key = mask * 64 + k;
+    const hit = memo.get(key); if (hit !== undefined) return hit;
+    let i = 0; while (!((mask >> i) & 1)) i++;
+    const ci = nat[i], rest = mask & ~(1 << i);
+    let best = ci.r + f(rest, k);
+    // grupos: mismo número
+    const same = [];
+    for (let j = i+1; j < n; j++) if (((rest >> j) & 1) && nat[j].r === ci.r) same.push(j);
+    const m = Math.min(same.length, 6);
+    for (let sub = 0; sub < (1 << m); sub++){
+      let cnt = 1, used = 0;
+      for (let b = 0; b < m; b++) if ((sub >> b) & 1){ cnt++; used |= 1 << same[b]; }
+      const need = Math.max(0, 3 - cnt);
+      if (need > k) continue;
+      const v = f(rest & ~used, k - need);
+      if (v < best) best = v;
+    }
+    // escaleras: mismo palo, números seguidos
+    const avail = {};
+    for (let j = i+1; j < n; j++) if (((rest >> j) & 1) && nat[j].s === ci.s && avail[nat[j].r] === undefined) avail[nat[j].r] = j;
+    for (let a = ci.r; a >= 3; a--){
+      let mwLeft = 0; for (let p = a; p < ci.r; p++) if (avail[p] === undefined) mwLeft++;
+      if (mwLeft > k) break;
+      let mw = mwLeft;
+      for (let b = ci.r; b <= 13; b++){
+        if (b > ci.r && avail[b] === undefined) mw++;
+        if (mw > k) break;
+        if (b - a + 1 < 3) continue;
+        const opt = [];
+        for (let p = a; p <= b; p++) if (p !== ci.r && avail[p] !== undefined) opt.push(avail[p]);
+        const free = k - mw;
+        for (let sub = 0; sub < (1 << opt.length); sub++){
+          let used = 0, skipped = 0;
+          for (let q = 0; q < opt.length; q++){ if ((sub >> q) & 1) used |= 1 << opt[q]; else skipped++; }
+          if (skipped > free) continue;
+          const v = f(rest & ~used, k - mw - skipped);
+          if (v < best) best = v;
+        }
+      }
+    }
+    memo.set(key, best);
+    return best;
+  }
+  const natSum = nat.reduce((s,c)=>s+c.r, 0);
+  const full = (1 << n) - 1;
+  const v = f(full, W);
+  if (v < natSum) return v;               // hay al menos una combinación: los comodines sobrantes entran en ella
+  return W >= 3 ? natSum : natSum + wSum;  // sin combinaciones con números
+}
+
+function newDeck(){
+  const d = []; let id = 0;
+  for (let k = 0; k < 2; k++) for (let s = 0; s < 5; s++) for (let r = 3; r <= 13; r++) d.push({id:id++, s, r});
+  for (let k = 0; k < 6; k++) d.push({id:id++, j:true});
+  for (let i = d.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i+1)); [d[i], d[j]] = [d[j], d[i]]; }
+  return d;
+}
+
+/* ===================== Estado local ===================== */
+const S = {
+  screen: "home",     // home | room | game
+  name: "", pid: "", code: "",
+  isHost: false, peer: null, conn: null, conns: new Map(),
+  view: null, sel: null, sort: "suit", busy: false,
+};
+try { S.pid = sessionStorage.getItem("cv_pid") || ""; } catch(e){}
+try { S.name = localStorage.getItem("cv_name") || ""; } catch(e){}
+if (!S.pid){ S.pid = Math.random().toString(36).slice(2, 10); try{ sessionStorage.setItem("cv_pid", S.pid); }catch(e){} }
+const params = new URLSearchParams(location.search);
+const urlCode = (params.get("sala") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let toastT;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=> t.hidden = true, 3200); }
+const PREFIX = "la-sobremesa-v1-";
+
+/* ===================== Anfitrión: el juego vive aquí ===================== */
+let G = null;
+const BOT_NAMES = ["Lupe (bot)", "Tito (bot)", "Nena (bot)", "Pepa (bot)", "Rulo (bot)", "Chela (bot)"];
+
+function hostInit(){
+  G = { phase:"lobby", players:[], round:0, wild:3, dealer:0, turn:0, deck:[], discard:[], wentOut:null, finalLeft:0, lastDraw:{}, log:[], reveal:null };
+  G.players.push({pid:S.pid, name:S.name, hand:[], total:0, rounds:[], online:true, bot:false});
+}
+function addLog(msg){ G.log.unshift(msg); G.log = G.log.slice(0, 6); }
+
+function startGame(){
+  G.players.forEach(p => { p.total = 0; p.rounds = []; p.hand = []; });
+  G.round = 0; G.dealer = G.players.length - 1; G.log = [];
+  startRound();
+}
+function startRound(){
+  G.round++; G.wild = G.round + 2;
+  G.dealer = (G.dealer + 1) % G.players.length;
+  G.deck = newDeck(); G.discard = []; G.wentOut = null; G.finalLeft = 0; G.reveal = null; G.lastDraw = {};
+  const P = G.players.length;
+  for (let c = 0; c < G.wild; c++) for (let k = 1; k <= P; k++) G.players[(G.dealer + k) % P].hand.push(G.deck.pop());
+  G.discard.push(G.deck.pop());
+  G.turn = (G.dealer + 1) % P; G.phase = "draw";
+  addLog(`Ronda ${G.round}: ${G.wild} cartas por persona, el ${RK(G.wild)} es comodín.`);
+}
+function drawFromDeck(p){
+  if (!G.deck.length){ const top = G.discard.pop(); G.deck = G.discard; G.discard = [top];
+    for (let i = G.deck.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [G.deck[i], G.deck[j]] = [G.deck[j], G.deck[i]]; }
+    addLog("Se rebarajó el descarte."); }
+  const c = G.deck.pop(); p.hand.push(c); G.lastDraw[p.pid] = c.id; return c;
+}
+function act(pi, a){
+  const p = G.players[pi];
+  if (!p) return "Jugador desconocido.";
+  if (a.t === "start"){ if (pi !== 0 || G.phase !== "lobby") return; if (G.players.length < 2) return "Hacen falta al menos 2 jugadores."; startGame(); return; }
+  if (a.t === "addBot"){ if (pi !== 0 || G.phase !== "lobby") return; if (G.players.length >= MAXP) return "La mesa está llena.";
+    const used = new Set(G.players.map(x=>x.name)); const nm = BOT_NAMES.find(x=>!used.has(x)) || "Bot";
+    G.players.push({pid:"bot-"+Math.random().toString(36).slice(2,8), name:nm, hand:[], total:0, rounds:[], online:true, bot:true}); return; }
+  if (a.t === "kick"){ if (pi !== 0 || G.phase !== "lobby") return; const k = G.players.findIndex(x=>x.pid===a.pid); if (k > 0){ const c = S.conns.get(a.pid); G.players.splice(k,1); if (c) { try{ c.send({t:"kicked"}); }catch(e){} } } return; }
+  if (a.t === "next"){ if (pi !== 0 || G.phase !== "roundEnd") return; startRound(); return; }
+  if (a.t === "again"){ if (pi !== 0 || G.phase !== "gameOver") return; G.phase = "lobby"; G.players.forEach(x=>{x.hand=[];}); return; }
+  if (a.t === "autoplay"){ if (pi !== 0) return; const k = G.players.findIndex(x=>x.pid===a.pid); if (k === G.turn && (G.phase==="draw"||G.phase==="discard")) botMove(k); return; }
+  if (G.turn !== pi) return "No es tu turno.";
+  if (a.t === "drawDeck"){ if (G.phase !== "draw") return; drawFromDeck(p); G.phase = "discard"; addLog(`${p.name} robó del mazo.`); return; }
+  if (a.t === "drawDiscard"){ if (G.phase !== "draw" || !G.discard.length) return; const c = G.discard.pop(); p.hand.push(c); G.lastDraw[p.pid] = c.id; G.phase = "discard"; addLog(`${p.name} tomó ${cardName(c)} del descarte.`); return; }
+  if (a.t === "discard"){
+    if (G.phase !== "discard") return;
+    const k = p.hand.findIndex(c => c.id === a.id); if (k < 0) return "Esa carta no está en tu mano.";
+    const [c] = p.hand.splice(k, 1); G.discard.push(c);
+    if (G.wentOut !== null){
+      G.finalLeft--;
+      addLog(`${p.name} descartó ${cardName(c)} en su última jugada.`);
+    } else if (bestPenalty(p.hand, G.wild) === 0){
+      G.wentOut = pi; G.finalLeft = G.players.length - 1;
+      addLog(`${p.name} bajó todo y salió. Los demás tienen una última jugada.`);
+    } else addLog(`${p.name} descartó ${cardName(c)}.`);
+    if (G.wentOut !== null && G.finalLeft <= 0){ endRound(); return; }
+    G.turn = (G.turn + 1) % G.players.length; G.phase = "draw"; return;
+  }
+}
+function cardName(c){ return c.j ? "un joker" : `${RK(c.r)} ${SUITS[c.s].g}`; }
+function endRound(){
+  G.reveal = G.players.map((p, i) => {
+    const pen = i === G.wentOut ? 0 : bestPenalty(p.hand, G.wild);
+    p.total += pen; p.rounds.push(pen);
+    return {name:p.name, hand:p.hand.slice(), pen, out: i === G.wentOut};
+  });
+  G.players.forEach(p => p.hand = []);
+  G.phase = G.round >= ROUNDS ? "gameOver" : "roundEnd";
+  addLog(G.phase === "gameOver" ? "Fin de la partida." : `Fin de la ronda ${G.round}.`);
+}
+
+/* Bot sencillo: toma el descarte si le mejora la mano y suelta la carta que menos le conviene guardar. */
+function bestDiscard(hand, wr){
+  let best = null;
+  for (const c of hand){
+    const rest = hand.filter(x => x !== c);
+    const pen = bestPenalty(rest, wr);
+    const score = pen * 100 - (isWild(c, wr) ? -5000 : cardVal(c, wr));
+    if (!best || score < best.score) best = {c, pen, score};
+  }
+  return best;
+}
+function botMove(pi){
+  const p = G.players[pi];
+  if (G.phase === "draw"){
+    const top = G.discard[G.discard.length - 1];
+    const now = bestPenalty(p.hand, G.wild);
+    let took = false;
+    if (top){ const bd = bestDiscard(p.hand.concat([top]), G.wild); if (bd.pen < now && bd.c !== top || isWild(top, G.wild)) { act(pi, {t:"drawDiscard"}); took = true; } }
+    if (!took) act(pi, {t:"drawDeck"});
+  }
+  if (G.phase === "discard" && G.turn === pi){
+    const bd = bestDiscard(p.hand, G.wild);
+    act(pi, {t:"discard", id: bd.c.id});
+  }
+}
+let botTimer = null;
+function scheduleBots(){
+  clearTimeout(botTimer);
+  if (!G || (G.phase !== "draw" && G.phase !== "discard")) return;
+  const p = G.players[G.turn];
+  if (!p || !p.bot) return;
+  botTimer = setTimeout(() => { botMove(G.turn); hostSync(); }, 1100);
+}
+
+function viewFor(pi){
+  const me = G.players[pi];
+  return {
+    phase:G.phase, round:G.round, wild:G.wild, turn:G.turn, me:pi, code:S.code,
+    dealer:G.dealer, wentOut:G.wentOut, deckCount:G.deck.length,
+    top:G.discard[G.discard.length - 1] || null,
+    hand: me ? me.hand : [], lastDraw: me ? G.lastDraw[me.pid] : null,
+    players: G.players.map(p => ({name:p.name, pid:p.pid, count:p.hand.length, total:p.total, rounds:p.rounds, online:p.online, bot:p.bot})),
+    log:G.log, reveal:G.reveal,
+  };
+}
+function hostSync(){
+  for (const [pid, c] of S.conns){
+    const pi = G.players.findIndex(p => p.pid === pid);
+    if (pi >= 0 && c.open){ try { c.send({t:"state", v:viewFor(pi)}); } catch(e){} }
+  }
+  S.view = viewFor(0); render(); scheduleBots();
+}
+function hostHandle(conn, msg){
+  if (!msg || typeof msg !== "object") return;
+  if (msg.t === "join"){
+    const name = String(msg.name || "").trim().slice(0, 20) || "Jugador";
+    const pid = String(msg.pid || "").slice(0, 20);
+    let p = pid && pid !== S.pid ? G.players.find(x => x.pid === pid) : null;
+    if (!pid || pid === S.pid){ conn.send({t:"error", m:"No puedes unirte a tu propia sala desde la misma pestaña."}); return; }
+    if (!p){
+      if (G.phase !== "lobby"){ conn.send({t:"error", m:"La partida ya empezó. Pide al anfitrión que abra una sala nueva."}); return; }
+      if (G.players.length >= MAXP){ conn.send({t:"error", m:"La mesa está llena (máximo 7)."}); return; }
+      p = {pid, name, hand:[], total:0, rounds:[], online:true, bot:false}; G.players.push(p);
+      addLog(`${name} se unió.`);
+    } else { p.online = true; if (G.phase === "lobby") p.name = name; addLog(`${p.name} volvió a conectarse.`); }
+    conn.pid = pid; S.conns.set(pid, conn); hostSync(); return;
+  }
+  const pi = G.players.findIndex(p => p.pid === conn.pid);
+  if (pi < 0) return;
+  if (msg.t === "act"){ const err = act(pi, msg.a || {}); if (err) conn.send({t:"error", m:err}); hostSync(); }
+}
+
+/* ===================== Red (PeerJS, de navegador a navegador) ===================== */
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const newCode = () => Array.from({length:5}, () => CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]).join("");
+
+function createRoom(){
+  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
+  S.busy = true; render();
+  S.code = newCode();
+  const peer = new Peer(PREFIX + S.code);
+  S.peer = peer;
+  peer.on("open", () => {
+    if (S.isHost) return;  // reconexión al servidor: la partida sigue igual
+    S.isHost = true; S.busy = false; hostInit(); S.screen = "game"; hostSync();
+  });
+  peer.on("connection", conn => {
+    conn.on("data", m => hostHandle(conn, m));
+    conn.on("close", () => { const p = G && G.players.find(x => x.pid === conn.pid); if (p && S.conns.get(conn.pid) === conn){ p.online = false; S.conns.delete(conn.pid); addLog(`${p.name} se desconectó.`); hostSync(); } });
+  });
+  peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
+  peer.on("error", e => {
+    if (e.type === "unavailable-id"){ peer.destroy(); createRoom(); return; }
+    if (!S.isHost){ S.busy = false; render(); }
+    toast("Error de conexión: " + (e.type || "desconocido"));
+  });
+}
+
+function joinRoom(code){
+  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
+  code = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length < 4){ toast("Escribe el código de la sala."); return; }
+  S.busy = true; S.code = code; render();
+  const peer = S.peer && !S.peer.destroyed ? S.peer : new Peer();
+  S.peer = peer;
+  const go = () => {
+    const conn = peer.connect(PREFIX + code, {reliable:true});
+    S.conn = conn;
+    const timer = setTimeout(() => { if (!conn.open){ S.busy = false; render(); toast("No encontré esa sala. Revisa el código o pide al anfitrión que la abra."); } }, 9000);
+    conn.on("open", () => { clearTimeout(timer); conn.send({t:"join", name:S.name, pid:S.pid}); });
+    conn.on("data", m => {
+      if (m.t === "state"){ S.busy = false; S.view = m.v; S.screen = "game"; render(); }
+      else if (m.t === "error"){ S.busy = false; render(); toast(m.m); }
+      else if (m.t === "kicked"){ S.view = null; S.screen = "home"; render(); toast("El anfitrión te sacó de la sala."); }
+    });
+    conn.on("close", () => { if (S.screen === "game"){ toast("Se perdió la conexión con el anfitrión. Reintentando…"); setTimeout(() => { if (!S.conn || !S.conn.open) joinRoom(S.code); }, 2500); } });
+  };
+  if (peer.open) go(); else peer.once("open", go);
+  peer.on("error", e => { if (e.type === "peer-unavailable"){ S.busy = false; render(); toast("No encontré esa sala. Revisa el código."); } });
+  peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
+}
+
+function send(a){
+  if (S.isHost){ const err = act(0, a); if (err) toast(err); hostSync(); }
+  else if (S.conn && S.conn.open) S.conn.send({t:"act", a});
+  else toast("Sin conexión con el anfitrión.");
+}
+
+/* ===================== Interfaz ===================== */
+function cardHTML(c, wr, extra = "", attrs = ""){
+  if (c.j) return `<div class="card joker ${extra}" ${attrs} aria-label="Joker, comodín"><span class="rk">JOKER</span><span class="big">✦</span></div>`;
+  const s = SUITS[c.s], w = c.r === wr;
+  return `<div class="card ${w ? "wild" : ""} ${extra}" ${attrs} style="--c:${s.c}" aria-label="${RK(c.r)} de ${s.n}${w ? ", comodín" : ""}"><span class="rk">${RK(c.r)}</span><span class="sm">${s.g}</span><span class="big">${s.g}</span></div>`;
+}
+function sortHand(hand, wr){
+  const key = c => isWild(c, wr) ? [9, c.j ? 99 : c.r, 0] : S.sort === "suit" ? [c.s, c.r, 0] : [c.r, c.s, 0];
+  return hand.slice().sort((a, b) => { const x = key(a), y = key(b); return x[0]-y[0] || x[1]-y[1] || a.id - b.id; });
+}
+const rulesHTML = `<details><summary>Cómo se juega Once Rondas</summary><ul>
+  <li>Son 11 rondas. En la primera recibes 3 cartas, en la segunda 4, y así hasta 13.</li>
+  <li><strong>El comodín cambia:</strong> el número que coincide con las cartas repartidas es comodín en esa ronda (3 en la primera, 4 en la segunda… K en la última). Los jokers son comodín siempre.</li>
+  <li>En tu turno robas una carta (del mazo o del descarte) y descartas una.</li>
+  <li>Tu objetivo es que toda tu mano forme <strong>grupos</strong> (3 o más del mismo número) o <strong>escaleras</strong> (3 o más seguidas del mismo palo). Los comodines rellenan huecos.</li>
+  <li>Cuando al descartar todo lo que te queda está combinado, sales. Cada persona juega una última vez y la ronda termina.</li>
+  <li>El juego combina tu mano solo de la mejor forma. Lo que no entra en ninguna combinación suma en tu contra: su número (J 11, Q 12, K 13), 20 cada comodín de ronda y 50 cada joker.</li>
+  <li>Gana quien tenga <strong>menos</strong> puntos al terminar la ronda 11.</li>
+  <li>Mazo: 5 palos (☀ soles, ☾ lunas, ≈ olas, ✿ flores, ϟ rayos) del 3 a la K, dos veces, más 6 jokers.</li>
+</ul></details>`;
+
+function renderHome(){
+  const fan = [{s:0,r:7},{s:1,r:8},{j:true},{s:3,r:10},{s:4,r:11}].map(c => cardHTML(c, 9)).join("");
+  return `<header class="hero">
+      <span class="label">Juegos de cartas online · gratis</span>
+      <h1>La Sobremesa</h1>
+      <p class="muted" style="max-width:56ch">Abre una mesa, comparte el código y juega a las cartas con quien quieras, estés donde estés. Sin cuentas ni descargas.</p>
+    </header>
+    <section class="panel">
+      <label class="label" for="nm">Tu nombre</label>
+      <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
+    </section>
+    <div class="grid2">
+      <section class="panel">
+        <span class="label">Juego · 2 a 7 personas · unos 40 minutos</span>
+        <h2>Once Rondas</h2>
+        <div class="hero-fan" aria-hidden="true">${fan}</div>
+        <p class="muted">De 3 a 13 cartas, y en cada ronda cambia el comodín. Arma grupos y escaleras y termina con la menor cantidad de puntos.</p>
+        <p class="muted">Al crear la sala, la partida corre en tu navegador: mantén esta pestaña abierta hasta el final.</p>
+        <div class="row"><button id="create" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Once Rondas"}</button></div>
+      </section>
+      <section class="panel">
+        <h2>Unirme a una sala</h2>
+        <p class="muted">Pide el código a quien abrió la mesa.</p>
+        <label class="label" for="code">Código de la sala</label>
+        <input id="code" maxlength="6" placeholder="ABCDE" value="${esc(urlCode || "")}" style="text-transform:uppercase;letter-spacing:.15em">
+        <div class="row"><button id="join" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Unirme"}</button></div>
+      </section>
+    </div>
+    ${rulesHTML}`;
+}
+
+function renderLobby(v){
+  const host = S.isHost;
+  const link = location.origin + location.pathname + "?sala=" + v.code;
+  const shareable = location.protocol.startsWith("http");
+  return `<header class="hero"><span class="label">La Sobremesa · Sala</span><h1>Once Rondas</h1></header>
+  <div class="grid2">
+    <section class="panel">
+      <span class="label">Código para unirse</span>
+      <span class="code">${esc(v.code)}</span>
+      ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p><div class="row"><button class="ghost" id="copy">Copiar enlace</button></div>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
+    </section>
+    <section class="panel">
+      <span class="label">En la mesa (${v.players.length}/${MAXP})</span>
+      <ul class="plist">${v.players.map((p, i) => `<li><span>${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
+      ${host ? `<div class="row"><button id="start" ${v.players.length < 2 ? "disabled" : ""}>Empezar partida</button><button class="ghost" id="bot" ${v.players.length >= MAXP ? "disabled" : ""}>Añadir bot</button></div>
+        ${v.players.length < 2 ? `<p class="muted">Espera a que alguien se una o añade un bot para practicar.</p>` : ""}`
+        : `<p class="muted">Esperando a que el anfitrión empiece la partida…</p>`}
+    </section>
+  </div>
+  ${rulesHTML}`;
+}
+
+let penCache = {key:"", pen:0, outs:new Set()};
+function handInfo(hand, wr, phase){
+  const key = wr + ":" + phase + ":" + hand.map(c=>c.id).sort((a,b)=>a-b).join(",");
+  if (penCache.key === key) return penCache;
+  const outs = new Set(); let pen;
+  if (phase === "discard"){
+    let best = Infinity;
+    for (const c of hand){ const p = bestPenalty(hand.filter(x => x !== c), wr); if (p === 0) outs.add(c.id); if (p < best) best = p; }
+    pen = best;
+  } else pen = bestPenalty(hand, wr);
+  penCache = {key, pen, outs};
+  return penCache;
+}
+
+function renderGame(v){
+  const me = v.me, myTurn = v.turn === me && (v.phase === "draw" || v.phase === "discard");
+  const turnName = v.players[v.turn] ? v.players[v.turn].name : "";
+  const hand = sortHand(v.hand, v.wild);
+  const info = hand.length ? handInfo(v.hand, v.wild, myTurn && v.phase === "discard" ? "discard" : "hold") : {pen:0, outs:new Set()};
+  if (S.sel !== null && !v.hand.some(c => c.id === S.sel)) S.sel = null;
+  let status;
+  if (myTurn && v.phase === "draw") status = "Tu turno: roba del mazo o del descarte";
+  else if (myTurn && v.phase === "discard") status = S.sel === null ? "Elige una carta para descartar" : (info.outs.has(S.sel) ? "Descarta y sales de la ronda" : "Pulsa Descartar para terminar tu turno");
+  else status = `Turno de ${esc(turnName)}`;
+  const outBanner = v.wentOut !== null && (v.phase === "draw" || v.phase === "discard")
+    ? `<div class="banner">${esc(v.players[v.wentOut].name)} salió. Cada persona juega una última vez.</div>` : "";
+  const top = v.top;
+  const players = v.players.map((p, i) => `<div class="pchip ${i===v.turn && (v.phase==="draw"||v.phase==="discard") ? "turn" : ""} ${!p.online ? "off" : ""}">
+      <span class="nm">${esc(p.name)}${i===me?' <span class="muted">(tú)</span>':""}${i===v.wentOut?'<span class="tag">salió</span>':""}</span>
+      <span class="st">${p.total} pts · ${p.count} cartas${i===v.dealer?" · reparte":""}</span>
+      ${S.isHost && !p.online && i===v.turn && !p.bot ? `<button class="ghost" data-auto="${esc(p.pid)}" style="padding:.2em .6em;font-size:.8rem;margin-top:4px">Jugar por esta persona</button>` : ""}
+    </div>`).join("");
+  const canDraw = myTurn && v.phase === "draw";
+  return `<div class="topbar">
+      <div class="round"><span class="label">Ronda</span><strong>${v.round}/${ROUNDS}</strong>
+      <span class="wildchip" title="Comodín de esta ronda">Comodín: ${RK(v.wild)} + jokers</span></div>
+      <span class="muted">Once Rondas · Sala ${esc(v.code)}</span>
+    </div>
+    <div class="players">${players}</div>
+    ${outBanner}
+    <div class="table">
+      <button class="pile ${canDraw ? "can" : ""}" id="deck" ${canDraw ? "" : "disabled"} aria-label="Robar del mazo">
+        <div class="card back"></div><span class="label">Mazo · ${v.deckCount}</span>
+      </button>
+      <button class="pile ${canDraw && top ? "can" : ""}" id="disc" ${canDraw && top ? "" : "disabled"} aria-label="Tomar del descarte">
+        ${top ? cardHTML(top, v.wild) : `<div class="empty"></div>`}<span class="label">Descarte</span>
+      </button>
+    </div>
+    <p class="status" aria-live="polite">${status}</p>
+    <section class="panel">
+      <div class="handbar">
+        <span class="label">Tu mano · ${hand.length} cartas · ${info.pen === 0 && hand.length ? "¡todo combina!" : `te quedarían ${info.pen} pts`}</span>
+        <div class="row">
+          <button class="ghost" id="sortS" style="padding:.35em .8em" ${S.sort==="suit"?"disabled":""}>Por palo</button>
+          <button class="ghost" id="sortR" style="padding:.35em .8em" ${S.sort==="rank"?"disabled":""}>Por número</button>
+          ${myTurn && v.phase === "discard" ? `<button id="discBtn" ${S.sel === null ? "disabled" : ""}>${S.sel !== null && info.outs.has(S.sel) ? "Descartar y salir" : "Descartar"}</button>` : ""}
+        </div>
+      </div>
+      <div class="hand">${hand.map(c => cardHTML(c, v.wild,
+        `${S.sel === c.id ? "sel" : ""} ${c.id === v.lastDraw && myTurn ? "new" : ""}`,
+        `data-card="${c.id}" tabindex="0" role="button"`).replace(/<\/div>$/, (myTurn && v.phase==="discard" && info.outs.has(c.id)) ? `<span class="out">sales</span></div>` : "</div>")).join("")}</div>
+    </section>
+    <div class="log">${v.log.map(l => `<span>${esc(l)}</span>`).join("")}</div>
+    ${rulesHTML}
+    ${v.phase === "roundEnd" || v.phase === "gameOver" ? renderEnd(v) : ""}`;
+}
+
+function renderEnd(v){
+  const over = v.phase === "gameOver";
+  const standings = v.players.map((p, i) => ({...p, i})).sort((a, b) => a.total - b.total);
+  const head = Array.from({length: v.round}, (_, k) => `<th>${k+1}</th>`).join("");
+  const table = `<div class="tablewrap"><table class="scores"><thead><tr><th>Jugador</th>${head}<th>Total</th></tr></thead><tbody>
+    ${standings.map(p => `<tr><td>${esc(p.name)}</td>${p.rounds.map(r => `<td>${r}</td>`).join("")}<td><strong>${p.total}</strong></td></tr>`).join("")}</tbody></table></div>`;
+  const reveal = (v.reveal || []).map(r => `<div><div class="who"><strong>${esc(r.name)}</strong><span class="muted">${r.out ? "salió · 0 pts" : `+${r.pen} pts`}</span></div>
+      <div class="mini">${sortHand(r.hand, v.wild).map(c => cardHTML(c, v.wild)).join("")}</div></div>`).join("");
+  const winner = standings[0];
+  return `<div class="overlay" role="dialog" aria-modal="true"><div class="panel">
+    <span class="label">${over ? "Fin de la partida" : `Fin de la ronda ${v.round}`}</span>
+    <h2>${over ? `Gana ${esc(winner.name)} con ${winner.total} puntos` : `Así quedaron las manos`}</h2>
+    <div class="reveal">${reveal}</div>
+    ${table}
+    <div class="row">${S.isHost
+      ? (over ? `<button id="again">Jugar otra vez</button>` : `<button id="next">Siguiente ronda (${v.round + 1}: ${v.round + 3} cartas)</button>`)
+      : `<p class="muted">Esperando al anfitrión…</p>`}</div>
+  </div></div>`;
+}
+
+function render(){
+  const app = $("#app");
+  if (S.screen === "home" || !S.view) app.innerHTML = renderHome();
+  else if (S.view.phase === "lobby") app.innerHTML = renderLobby(S.view);
+  else app.innerHTML = renderGame(S.view);
+  bind();
+}
+function readName(){ const el = $("#nm"); const n = (el ? el.value : S.name).trim().slice(0, 20); if (!n){ toast("Escribe tu nombre primero."); el && el.focus(); return false; } S.name = n; try{ localStorage.setItem("cv_name", n); }catch(e){} return true; }
+function bind(){
+  const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
+  on("#create", () => { if (readName()) createRoom(); });
+  on("#join", () => { if (readName()) joinRoom($("#code").value); });
+  const codeEl = $("#code"); if (codeEl) codeEl.onkeydown = e => { if (e.key === "Enter" && readName()) joinRoom(codeEl.value); };
+  on("#start", () => send({t:"start"}));
+  on("#bot", () => send({t:"addBot"}));
+  on("#next", () => send({t:"next"}));
+  on("#again", () => send({t:"again"}));
+  on("#deck", () => send({t:"drawDeck"}));
+  on("#disc", () => send({t:"drawDiscard"}));
+  on("#sortS", () => { S.sort = "suit"; render(); });
+  on("#sortR", () => { S.sort = "rank"; render(); });
+  on("#discBtn", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"discard", id}); } });
+  on("#copy", () => { const link = location.origin + location.pathname + "?sala=" + S.view.code;
+    if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast("Enlace copiado"), () => toast(link)); else toast(link); });
+  document.querySelectorAll("[data-kick]").forEach(b => b.onclick = () => send({t:"kick", pid:b.dataset.kick}));
+  document.querySelectorAll("[data-auto]").forEach(b => b.onclick = () => send({t:"autoplay", pid:b.dataset.auto}));
+  document.querySelectorAll(".hand [data-card]").forEach(el => {
+    const pick = () => {
+      const v = S.view; if (!(v.turn === v.me && v.phase === "discard")) { toast(v.turn === v.me ? "Primero roba una carta." : "Espera tu turno."); return; }
+      const id = Number(el.dataset.card);
+      if (S.sel === id){ S.sel = null; send({t:"discard", id}); return; }  // doble toque = descartar
+      S.sel = id; render();
+    };
+    el.onclick = pick;
+    el.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); pick(); } };
+  });
+}
+window.addEventListener("beforeunload", e => { if (S.isHost && G && G.phase !== "lobby" && G.phase !== "gameOver"){ e.preventDefault(); e.returnValue = ""; } });
+render();
+</script>
+</body>
+</html>
