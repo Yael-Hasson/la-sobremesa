@@ -258,6 +258,11 @@ details{border-color:var(--rim)}
 .thand .card:last-child:not(:only-child){transform:rotate(8deg)}
 .thand .card.sel{transform:translateY(-18px); box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45); z-index:2}
 .handzone .handbar{width:100%; justify-content:center}
+.hand .card,.thand .card{touch-action:none; -webkit-user-select:none; user-select:none}
+.card.dragging{z-index:20; transition:none !important; box-shadow:0 14px 26px rgba(0,0,0,.55); cursor:grabbing; opacity:.95}
+.card.drop-before{box-shadow:-5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
+.card.drop-after{box-shadow:5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
+.draghint{font-size:.8rem; color:var(--muted); text-align:center; margin:0}
 .wrap{gap:12px}
 .tally{padding:8px 12px; gap:4px}
 .frow b{font-size:1.2rem}
@@ -586,7 +591,7 @@ function tDeal(){
   const d = tDeck(); T.hands = []; T.dealt = [];
   for (let p = 0; p < N; p++){ T.hands[p] = [d.pop(), d.pop(), d.pop()]; T.dealt[p] = T.hands[p].slice(); }
   T.bazas = [{plays:[], res:null, winner:null}]; T.turn = T.mano;
-  T.level = 1; T.canRaise = null; T.tPend = null; T.ePend = null; T.envDone = false; T.last = null; T.say = {};
+  T.level = 1; T.canRaise = null; T.tPend = null; T.ePend = null; T.envDone = false; T.last = null; T.say = {}; T.deal = (T.deal || 0) + 1;
   G.phase = "play";
   addLog(`Nueva mano: reparte ${tName(T.dealer)}, es mano ${tName(T.mano)}.`);
 }
@@ -755,7 +760,7 @@ function trucoView(pi){
   const T = G.t;
   if (!T || !T.hands) return {tr:null};
   return {tr:{
-    scores:T.scores, target:T.target, mano:T.mano, dealer:T.dealer, actor: G.phase === "play" ? tActor() : null,
+    scores:T.scores, target:T.target, deal:T.deal, mano:T.mano, dealer:T.dealer, actor: G.phase === "play" ? tActor() : null,
     hand:T.hands[pi] || [], myEnv: T.dealt[pi] ? tEnvido(T.dealt[pi]) : 0, counts:T.hands.map(h => h.length),
     bazas:T.bazas, say:T.say || {}, level:T.level, tPend:T.tPend, ePend:T.ePend, avail:tAvail(pi), last:T.last, winner:T.winner,
   }};
@@ -975,7 +980,7 @@ function renderTruco(v){
     `<button class="${k === "quiero" ? "" : k === "noquiero" ? "ghost" : k === "mazo" ? (S.mazoArm ? "warn" : "ghost") : "alt"}" data-call="${k}">${LBL[k]}</button>`).join("");
   const canPlay = t.avail.includes("play");
   if (S.sel !== null && !t.hand.some(c => c.id === S.sel)) S.sel = null;
-  const hand = t.hand.slice().sort((a, b) => tPower(b) - tPower(a)).map(c =>
+  const hand = orderedHand(t.hand, "truco", "d" + t.deal, h => h.slice().sort((a, b) => tPower(b) - tPower(a))).map(c =>
     tCardHTML(c, S.sel === c.id ? "sel" : "", `data-tcard="${c.id}" tabindex="0" role="button"`)).join("");
   const lvl = t.level > 1 ? `${TNAME[t.level]} querido · ${t.level} pts` : "La mano vale 1 punto";
   const row = (team, label) => `<div class="frow ${team === my ? "us" : ""}"><span class="fl">${label}</span>${fosScore(t.scores[team])}<b>${t.scores[team]}</b></div>`;
@@ -1001,6 +1006,7 @@ function renderTruco(v){
     ${calls ? `<div class="calls">${calls}</div>` : ""}
     <section class="handzone">
       <div class="thand">${hand || `<p class="muted">Ya jugaste tus cartas.</p>`}</div>
+      ${t.hand.length > 1 ? `<p class="draghint">Mantén una carta y arrástrala para cambiarla de lugar.</p>` : ""}
       <div class="handbar"><span class="label">Tu envido: ${t.myEnv}</span>
         ${canPlay ? `<button id="tPlay" ${S.sel === null ? "disabled" : ""}>Jugar carta</button>` : ""}</div>
     </section>
@@ -1023,12 +1029,66 @@ function renderInvite(){
           <p class="muted">${long ? "Quien creó la sala parece estar fuera de La Sobremesa (por ejemplo, mandando el enlace por WhatsApp). En cuanto vuelva, entras automáticamente." : "Conectando con la sala…"}</p>
           <div class="row"><button class="ghost" id="cancelJoin">Cancelar</button></div>`
         : `<label class="label" for="nm">Tu nombre</label>
-          <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
+          <input id="nm" maxlength="20" placeholder="Por ejemplo: Lucía" value="${esc(S.name)}" autocomplete="nickname">
           <div class="row"><button id="enter">Entrar a la partida</button></div>
           ${S.joinError ? `<p class="err">${esc(S.joinError)}</p>` : ""}
           <p class="muted">Sala ${esc(S.code || urlCode)}</p>`}
     </section>
     <p class="muted"><button class="linklike" id="toHome">Ir al inicio de La Sobremesa</button></p>`;
+}
+
+/* Orden de la mano que elige cada persona: se guarda por ronda (o por mano en el truco); las cartas nuevas van al final. */
+function orderedHand(hand, game, roundKey, sorter){
+  S.order = S.order || {};
+  let o = S.order[game];
+  if (!o || o.key !== roundKey) o = S.order[game] = {key: roundKey, ids: []};
+  const byId = new Map(hand.map(c => [c.id, c]));
+  const kept = o.ids.filter(id => byId.has(id));
+  const fresh = sorter(hand.filter(c => !kept.includes(c.id))).map(c => c.id);
+  o.ids = kept.concat(fresh);
+  return o.ids.map(id => byId.get(id));
+}
+/* Arrastrar una carta de la mano para cambiarla de lugar (ratón o dedo). Un toque sin mover sigue siendo un toque. */
+function enableHandDrag(container, game){
+  if (!container) return;
+  const cards = [...container.querySelectorAll("[data-card],[data-tcard]")];
+  const idOf = el => Number(el.dataset.card ?? el.dataset.tcard);
+  cards.forEach(el => {
+    el.addEventListener("pointerdown", e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      const start = {x: e.clientX, y: e.clientY};
+      const others = cards.filter(c => c !== el).map(c => { const r = c.getBoundingClientRect(); return {c, x: r.left + r.width / 2, y: r.top + r.height / 2}; });
+      let dragging = false, target = null;
+      const clear = () => cards.forEach(c => c.classList.remove("drop-before", "drop-after"));
+      const move = ev => {
+        const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+        if (!dragging && Math.hypot(dx, dy) > 8){ dragging = true; el.classList.add("dragging"); }
+        if (!dragging) return;
+        ev.preventDefault();
+        el.style.transform = `translate(${dx}px, ${dy}px) rotate(0deg)`;
+        let best = null, bd = Infinity;
+        for (const o of others){ const d = Math.hypot(ev.clientX - o.x, (ev.clientY - o.y) * 1.6); if (d < bd){ bd = d; best = o; } }
+        clear();
+        if (best){ target = {id: idOf(best.c), after: ev.clientX > best.x}; best.c.classList.add(target.after ? "drop-after" : "drop-before"); }
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+        if (!dragging) return;
+        S.justDragged = true; setTimeout(() => { S.justDragged = false; }, 60);
+        clear(); el.classList.remove("dragging"); el.style.transform = "";
+        const o = S.order && S.order[game];
+        if (o && target){
+          const id = idOf(el), ids = o.ids.filter(x => x !== id);
+          let k = ids.indexOf(target.id); if (k < 0) k = ids.length - 1;
+          ids.splice(target.after ? k + 1 : k, 0, id);
+          o.ids = ids;
+        }
+        render();
+      };
+      window.addEventListener("pointermove", move, {passive:false});
+      window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+    });
+  });
 }
 
 function sortHand(hand, wr){
@@ -1094,7 +1154,7 @@ function renderHome(){
     ${!navigator.onLine ? `<div class="banner">Estás sin conexión. Puedes jugar contra los bots con “Jugar sin conexión”; para jugar con otras personas hace falta internet.</div>` : ""}
     <section class="panel">
       <label class="label" for="nm">Tu nombre</label>
-      <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
+      <input id="nm" maxlength="20" placeholder="Por ejemplo: Lucía" value="${esc(S.name)}" autocomplete="nickname">
     </section>
     <div class="games">
       <section class="panel">
@@ -1179,7 +1239,7 @@ function handInfo(hand, wr, phase){
 function renderGame(v){
   const me = v.me, myTurn = v.turn === me && (v.phase === "draw" || v.phase === "discard");
   const turnName = v.players[v.turn] ? v.players[v.turn].name : "";
-  const hand = sortHand(v.hand, v.wild);
+  const hand = orderedHand(v.hand, "once", "r" + v.round, h => sortHand(h, v.wild));
   const info = hand.length ? handInfo(v.hand, v.wild, myTurn && v.phase === "discard" ? "discard" : "hold") : {pen:0, outs:new Set()};
   if (S.sel !== null && !v.hand.some(c => c.id === S.sel)) S.sel = null;
   let status;
@@ -1215,14 +1275,15 @@ function renderGame(v){
       <div class="handbar">
         <span class="label">Tu mano · ${hand.length} cartas · ${info.pen === 0 && hand.length ? "¡todo combina!" : `te quedarían ${info.pen} pts`}</span>
         <div class="row">
-          <button class="ghost" id="sortS" style="padding:.35em .8em" ${S.sort==="suit"?"disabled":""}>Por palo</button>
-          <button class="ghost" id="sortR" style="padding:.35em .8em" ${S.sort==="rank"?"disabled":""}>Por número</button>
+          <button class="ghost mini" id="sortS">Ordenar por palo</button>
+          <button class="ghost mini" id="sortR">Ordenar por número</button>
           ${myTurn && v.phase === "discard" ? `<button id="discBtn" ${S.sel === null ? "disabled" : ""}>${S.sel !== null && info.outs.has(S.sel) ? "Descartar y salir" : "Descartar"}</button>` : ""}
         </div>
       </div>
       <div class="hand">${hand.map(c => cardHTML(c, v.wild,
         `${S.sel === c.id ? "sel" : ""} ${c.id === v.lastDraw && myTurn ? "new" : ""}`,
         `data-card="${c.id}" tabindex="0" role="button"`).replace(/<\/div>$/, (myTurn && v.phase==="discard" && info.outs.has(c.id)) ? `<span class="out">sales</span></div>` : "</div>")).join("")}</div>
+      <p class="draghint">Mantén una carta y arrástrala para cambiarla de lugar.</p>
     </section>
     <div class="log">${v.log.map(l => `<span>${esc(l)}</span>`).join("")}</div>
     ${rulesHTML}
@@ -1286,8 +1347,11 @@ function bind(){
     }
     if (k === "quiero" || k === "noquiero") send({t:k}); else send({t:"call", k});
   });
+  enableHandDrag($(".thand"), "truco");
+  enableHandDrag($(".hand"), "once");
   document.querySelectorAll("[data-tcard]").forEach(el => {
     const pick = () => {
+      if (S.justDragged) return;
       const t = S.view.tr; if (!t || !t.avail.includes("play")){ toast(t && (t.tPend || t.ePend) ? "Primero hay que responder el canto." : "Espera tu turno."); return; }
       const id = Number(el.dataset.tcard);
       if (S.sel === id){ S.sel = null; send({t:"play", id}); return; }  // doble toque = jugar
@@ -1304,8 +1368,8 @@ function bind(){
   on("#again", () => send({t:"again"}));
   on("#deck", () => send({t:"drawDeck"}));
   on("#disc", () => send({t:"drawDiscard"}));
-  on("#sortS", () => { S.sort = "suit"; render(); });
-  on("#sortR", () => { S.sort = "rank"; render(); });
+  on("#sortS", () => { S.sort = "suit"; if (S.order) S.order.once = null; render(); });
+  on("#sortR", () => { S.sort = "rank"; if (S.order) S.order.once = null; render(); });
   on("#discBtn", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"discard", id}); } });
   on("#copy", () => { const link = roomLink(S.view.code, S.view.game);
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast("Enlace copiado"), () => toast(link)); else toast(link); });
@@ -1313,6 +1377,7 @@ function bind(){
   document.querySelectorAll("[data-auto]").forEach(b => b.onclick = () => send({t:"autoplay", pid:b.dataset.auto}));
   document.querySelectorAll(".hand [data-card]").forEach(el => {
     const pick = () => {
+      if (S.justDragged) return;
       const v = S.view; if (!(v.turn === v.me && v.phase === "discard")) { toast(v.turn === v.me ? "Primero roba una carta." : "Espera tu turno."); return; }
       const id = Number(el.dataset.card);
       if (S.sel === id){ S.sel = null; send({t:"discard", id}); return; }  // doble toque = descartar

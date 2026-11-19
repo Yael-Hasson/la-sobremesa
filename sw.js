@@ -1,6 +1,6 @@
 /* La Sobremesa: guarda la app para abrirla sin internet.
    Al publicar una versión nueva, sube el número de VERSION para que todos la reciban. */
-const VERSION = "sobremesa-v3";
+const VERSION = "sobremesa-v4";
 const APP = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
