@@ -258,7 +258,10 @@ details{border-color:var(--rim)}
 .thand .card:last-child:not(:only-child){transform:rotate(8deg)}
 .thand .card.sel{transform:translateY(-18px); box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45); z-index:2}
 .handzone .handbar{width:100%; justify-content:center}
-.hand .card,.thand .card{touch-action:none; -webkit-user-select:none; user-select:none}
+.lane.drop-lane{outline:3px solid var(--brass); outline-offset:2px}
+.newlane.drop-lane{background:rgba(233,180,76,.2)}
+.newlane{text-align:center; font-weight:700; font-size:.9rem}
+.hand .card,.thand .card,.lcards .card{touch-action:none; -webkit-user-select:none; user-select:none}
 .card.dragging{z-index:20; transition:none !important; box-shadow:0 14px 26px rgba(0,0,0,.55); cursor:grabbing; opacity:.95}
 .card.drop-before{box-shadow:-5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
 .card.drop-after{box-shadow:5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
@@ -1636,6 +1639,63 @@ function moveSel(target){
   S.sel = null; render();
 }
 
+/* Arrastrar cartas en Once Rondas: dentro de una fila para ordenarlas, o a otra fila. Un toque sin mover sigue siendo un toque. */
+function placeCard(id, drop){
+  const M = S.melds; if (!M) return;
+  M.groups.forEach(g => { g.ids = g.ids.filter(x => x !== id); });
+  M.loose = M.loose.filter(x => x !== id);
+  if (drop.lane === "new") M.groups.push({ids: [id], mode: null, win: null});
+  else {
+    const g = drop.lane === "loose" ? null : M.groups[Number(drop.lane)];
+    const arr = drop.lane === "loose" ? M.loose : g ? g.ids : M.loose;
+    const k = drop.ref !== undefined ? arr.indexOf(drop.ref) : -1;
+    if (k < 0) arr.push(id); else arr.splice(drop.after ? k + 1 : k, 0, id);
+    if (g) g.win = null;
+  }
+  M.groups = M.groups.filter(g => g.ids.length);
+  S.sel = null;
+}
+function enableMeldDrag(){
+  const zone = $(".mzone"); if (!zone || !S.melds) return;
+  zone.querySelectorAll("[data-card]").forEach(el => {
+    el.addEventListener("pointerdown", e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      const start = {x: e.clientX, y: e.clientY}, id = Number(el.dataset.card);
+      let dragging = false, drop = null;
+      const clear = () => zone.querySelectorAll(".drop-before,.drop-after,.drop-lane").forEach(n => n.classList.remove("drop-before", "drop-after", "drop-lane"));
+      const move = ev => {
+        const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+        if (!dragging && Math.hypot(dx, dy) > 8){ dragging = true; el.classList.add("dragging"); el.style.pointerEvents = "none"; }
+        if (!dragging) return;
+        ev.preventDefault();
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        clear(); drop = null;
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const laneEl = under && under.closest("[data-lanebox]"); if (!laneEl) return;
+        laneEl.classList.add("drop-lane");
+        drop = {lane: laneEl.dataset.lanebox};
+        let best = null, bd = Infinity;
+        laneEl.querySelectorAll("[data-card]").forEach(c => {
+          if (c === el) return;
+          const r = c.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const d = Math.hypot(ev.clientX - cx, (ev.clientY - cy) * 1.6); if (d < bd){ bd = d; best = {c, cx}; }
+        });
+        if (best){ drop.ref = Number(best.c.dataset.card); drop.after = ev.clientX > best.cx; best.c.classList.add(drop.after ? "drop-after" : "drop-before"); }
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+        if (!dragging) return;
+        S.justDragged = true; setTimeout(() => { S.justDragged = false; }, 60);
+        el.style.pointerEvents = ""; el.style.transform = ""; el.classList.remove("dragging"); clear();
+        if (drop) placeCard(id, drop);
+        render();
+      };
+      window.addEventListener("pointermove", move, {passive: false});
+      window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+    });
+  });
+}
+
 function renderMelds(v, info, myTurn){
   const M = syncMelds(v), byId = new Map(v.hand.map(c => [c.id, c]));
   const discarding = myTurn && v.phase === "discard";
@@ -1650,12 +1710,12 @@ function renderMelds(v, info, myTurn){
     const cards = g.ids.map(id => byId.get(id));
     const mi = meldInfo(cards, v.wild, g);
     if (!mi.ok) mine += cards.reduce((s, c) => s + cardVal(c, v.wild), 0);
-    const list = mi.ok ? mi.order : cards;
+    const list = mi.ok && mi.mode === "run" ? mi.order : cards;   // las escaleras van en orden; lo demás, como lo acomodes
     const opts = mi.ok ? [
       ...(mi.ambiguous ? [`<button class="chipbtn ${mi.mode === "set" ? "on" : ""}" data-mode="set" data-g="${gi}">Grupo</button><button class="chipbtn ${mi.mode === "run" ? "on" : ""}" data-mode="run" data-g="${gi}">Escalera</button>`] : []),
       ...(mi.mode === "run" && mi.choices && mi.choices.length ? mi.choices.map(ch => `<button class="chipbtn ${ch.a === mi.a ? "on" : ""}" data-win="${ch.a}" data-g="${gi}">${ch.text}</button>`) : []),
     ].join("") : "";
-    return `<div class="lane ${mi.ok ? "ok" : "bad"}">
+    return `<div class="lane ${mi.ok ? "ok" : "bad"}" data-lanebox="${gi}">
       <div class="lt"><span>${mi.ok ? esc(mi.label) : "Combinación sin terminar"}</span><em>${mi.ok ? "vale ✓" : esc(mi.why || "")}</em></div>
       ${opts ? `<div class="lopts"><span>${mi.ambiguous ? "¿Cómo la usas?" : "El comodín va de"}</span>${opts}</div>` : ""}
       <div class="lcards">${list.map(c => cardEl(c, mi.ok ? mi.as[c.id] : null)).join("")}</div>
@@ -1667,10 +1727,11 @@ function renderMelds(v, info, myTurn){
   const best = bestPenalty(v.hand, v.wild);
   return {mine, best, html: `<div class="mzone">
     ${lanes || `<p class="muted small">Todavía no tienes combinaciones. Toca una carta y luego “Nueva combinación”.</p>`}
-    <div class="lane loose"><div class="lt"><span>Sueltas</span><em>${looseCards.reduce((s, c) => s + cardVal(c, v.wild), 0)} pts</em></div>
+    <div class="lane loose" data-lanebox="loose"><div class="lt"><span>Sueltas</span><em>${looseCards.reduce((s, c) => s + cardVal(c, v.wild), 0)} pts</em></div>
       <div class="lcards">${looseCards.map(c => cardEl(c, null)).join("") || `<span class="muted small">Ninguna</span>`}</div>
       ${sel !== null && !M.loose.includes(sel) ? `<button class="moveto" data-lane="loose">Dejar suelta</button>` : ""}</div>
-    ${sel !== null ? `<button class="newlane" data-lane="new">+ Nueva combinación con esta carta</button>` : `<p class="draghint">Toca una carta para moverla a otra fila${discarding ? " o descartarla" : ""}.</p>`}
+    <div class="newlane" data-lanebox="new" ${sel !== null ? `data-lane="new" role="button" tabindex="0"` : ""}>${sel !== null ? "+ Nueva combinación con esta carta" : "+ Suelta aquí una carta para empezar una combinación nueva"}</div>
+    <p class="draghint">Arrastra las cartas para acomodarlas en el orden y la fila que quieras. También puedes tocar una carta para moverla${discarding ? " o descartarla" : ""}.</p>
   </div>`};
 }
 
@@ -1852,8 +1913,10 @@ function bind(){
   document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { const g = S.melds.groups[Number(b.dataset.g)]; if (g){ g.mode = b.dataset.mode; g.win = null; render(); } });
   document.querySelectorAll("[data-win]").forEach(b => b.onclick = () => { const g = S.melds.groups[Number(b.dataset.g)]; if (g){ g.win = Number(b.dataset.win); g.mode = "run"; render(); } });
   on("#autoMeld", () => { S.melds = null; S.sel = null; render(); });
+  enableMeldDrag();
   document.querySelectorAll(".mzone [data-card]").forEach(el => {
     const pick = () => {
+      if (S.justDragged) return;
       const v = S.view, id = Number(el.dataset.card);
       const canDiscard = v.turn === v.me && v.phase === "discard";
       if (S.sel === id){ S.sel = null; if (canDiscard) send({t:"discard", id}); else render(); return; }
