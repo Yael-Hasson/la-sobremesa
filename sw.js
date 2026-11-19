@@ -1,6 +1,6 @@
 /* La Sobremesa: guarda la app para abrirla sin internet.
    Al publicar una versión nueva, sube el número de VERSION para que todos la reciban. */
-const VERSION = "sobremesa-v4";
+const VERSION = "sobremesa-v6";
 const APP = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -32,7 +32,7 @@ self.addEventListener("fetch", e => {
 
   // Archivos propios, tipografías y la librería de conexión: la copia guardada y se actualiza por detrás.
   const cacheable = url.origin === self.location.origin
-    || url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com" || url.hostname === "unpkg.com";
+    || url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com" || url.hostname === "cdn.jsdelivr.net";
   if (!cacheable) return;
   e.respondWith(
     caches.open(VERSION).then(cache => cache.match(req).then(hit => {

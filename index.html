@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="La Sobremesa">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@700;800&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@700;800&family=Alegreya+Sans:wght@400;500;700;800&family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <style>
 /* Layout: one card table. Top bar with round and scores, the table (deck + discard) in the middle, your hand along the bottom. */
 :root{
@@ -94,7 +94,7 @@ input{
 .hand .card{cursor:pointer}
 .hand .card.sel{transform:translateY(-14px); box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45)}
 .hand .card.new{box-shadow:0 0 0 2px #fff8, 0 4px 10px rgba(0,0,0,.35)}
-.hand .card .out{position:absolute; top:-9px; right:-6px; background:var(--brass); color:var(--brass-ink); font-size:10px; font-weight:800; padding:2px 5px; border-radius:4px; font-family:var(--f-body)}
+.card .out{position:absolute; z-index:2; line-height:1.2; top:-9px; right:-6px; background:var(--brass); color:var(--brass-ink); font-size:10px; font-weight:800; padding:2px 5px; border-radius:4px; font-family:var(--f-body)}
 
 /* Game */
 .topbar{display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between}
@@ -263,6 +263,43 @@ details{border-color:var(--rim)}
 .card.drop-before{box-shadow:-5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
 .card.drop-after{box-shadow:5px 0 0 var(--brass), 0 2px 6px rgba(0,0,0,.4)}
 .draghint{font-size:.8rem; color:var(--muted); text-align:center; margin:0}
+button.warn{background:#8f2a22; color:var(--face)}
+#app{padding-bottom:56px}
+/* Once Rondas: filas de combinaciones */
+.mzone{display:flex; flex-direction:column; gap:8px; --card-w:clamp(44px, 12.5vw, 60px)}
+.lane{border-radius:10px; padding:8px 10px 10px; display:flex; flex-direction:column; gap:6px}
+.lane.ok{background:rgba(47,107,74,.5); border:2px solid #6fb08a}
+.lane.bad{background:rgba(0,0,0,.22); border:2px dashed #c08a5a}
+.lane.loose{background:rgba(0,0,0,.18); border:2px dashed var(--rim)}
+.lt{display:flex; justify-content:space-between; align-items:center; gap:8px; font:800 .9rem var(--f-display)}
+.lt em{font:600 .75rem var(--f-body); font-style:normal; background:rgba(0,0,0,.3); padding:1px 8px; border-radius:999px; white-space:nowrap}
+.lane.ok .lt em{background:#6fb08a; color:#12321f}
+.lane.bad .lt em{background:#c08a5a; color:#2b1a0c}
+.lcards{display:flex; gap:6px; flex-wrap:wrap; align-items:flex-end; padding-top:4px}
+.lcards .card{cursor:pointer}
+.lcards .card.sel{transform:translateY(-8px); box-shadow:0 0 0 3px var(--brass), 0 8px 14px rgba(0,0,0,.45)}
+.as{display:flex; flex-direction:column; align-items:center; gap:3px}
+.as small{font:800 .68rem var(--f-body); background:var(--face); color:#6b2d8c; border-radius:999px; padding:0 7px; white-space:nowrap}
+.lopts{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:.8rem; color:var(--muted)}
+.chipbtn{background:var(--face); color:#6b2d8c; border:2px solid #6b2d8c; border-radius:999px; padding:1px 10px; font:800 .8rem var(--f-body); box-shadow:none}
+.chipbtn.on{background:#6b2d8c; color:var(--face)}
+.moveto{align-self:flex-start; background:var(--brass); color:var(--brass-ink); padding:.35em .9em; font-size:.85rem; border-radius:999px}
+.newlane{background:transparent; color:var(--ink-on-table); border:2px dashed var(--brass); box-shadow:none; border-radius:10px; padding:.6em}
+#chat{position:fixed; right:max(14px, env(safe-area-inset-right,0px)); bottom:max(14px, env(safe-area-inset-bottom,0px)); z-index:45; display:flex; flex-direction:column; align-items:flex-end; gap:8px}
+#chat[hidden]{display:none !important}
+.chatbtn{font-family:var(--f-cute, inherit); background:#3f2614; color:#fffaf0; border-radius:999px; padding:.65em 1.2em; display:inline-flex; gap:8px; align-items:center}
+.chatbtn .badge{background:#8f2a22; color:var(--face); border-radius:999px; min-width:1.5em; padding:0 .4em; font-size:.8rem; line-height:1.5em; text-align:center}
+.chatbox{width:min(340px, calc(100vw - 28px)); max-height:min(60vh, 440px); background:var(--wood-2); border:1px solid var(--rim); border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,.5); display:flex; flex-direction:column; overflow:hidden}
+.chatbox[hidden]{display:none !important}
+.chathead{display:flex; justify-content:space-between; align-items:center; padding:8px 10px 8px 14px; border-bottom:1px solid var(--rim); font-family:var(--f-display)}
+.chatlist{flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:6px; min-height:120px}
+.chatlist p{margin:0; background:rgba(0,0,0,.25); padding:6px 10px; border-radius:10px 10px 10px 2px; max-width:85%; align-self:flex-start; overflow-wrap:anywhere}
+.chatlist p.mine{align-self:flex-end; background:var(--parch); color:var(--ink); border-radius:10px 10px 2px 10px}
+.chatlist p b{display:block; font-size:.75rem; color:var(--brass); font-family:var(--f-display)}
+.chatlist p.mine b{color:#7a1f19}
+.chatform{display:flex; gap:6px; padding:8px; border-top:1px solid var(--rim)}
+.chatform input{flex:1; min-width:0; padding:.5em .7em}
+.chatform button{padding:.5em .9em}
 .wrap{gap:12px}
 .tally{padding:8px 12px; gap:4px}
 .frow b{font-size:1.2rem}
@@ -272,6 +309,126 @@ details{border-color:var(--rim)}
 .status{margin:0}
 @media (max-width:420px){ .tt{padding:16px 6px 12px; gap:4px} .seat .nm{max-width:84px; font-size:.85rem} .calls button{flex:1 1 40%; padding:.6em .5em} .topbar{gap:4px 12px} }
 
+/* ================= Portada, sala de espera e invitación: estilo "Mesa servida" (claro, redondeado) ================= */
+:root{ --cream:#f8eedc; --cream-2:#f1e2c6; --paper:#fffaf0; --cink:#3a2617; --soft:#8a735a; --honey:#e9b44c; --honey-2:#c48f2c; --rose:#e98f86; --rose-2:#c8574c; --sky:#8fb7d9; --mint:#9fd1b3;
+  --f-cute:"Fredoka", "Nunito", system-ui, sans-serif; --f-round:"Nunito", "Segoe UI", system-ui, sans-serif }
+body[data-screen="home"], body[data-screen="lobby"], body[data-screen="invite"]{background:var(--cream); color:var(--cink); font-family:var(--f-round); padding-left:0; padding-right:0; padding-top:0}
+body[data-screen="home"] .wrap, body[data-screen="lobby"] .wrap, body[data-screen="invite"] .wrap{max-width:560px}
+.cozy-page{display:flex; flex-direction:column; gap:12px; padding-bottom:16px; color:var(--cink)}
+.cozy-page h1{font:700 clamp(1.7rem, 6vw, 2.1rem)/1.05 var(--f-cute); color:#3f2614; letter-spacing:0}
+.cozy-page .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+.cozy-page button{font-family:var(--f-cute); font-weight:700; box-shadow:none}
+.cozy-page button:active:not(:disabled){transform:translateY(2px)}
+.cozy-page input{background:var(--paper); color:var(--cink); border:2px solid var(--cream-2); border-radius:999px; padding:.6em 1em; font-family:var(--f-round)}
+.cozy-page input::placeholder{color:#b29f86}
+.cozy-page .linklike{color:var(--soft); align-self:center}
+.cozy-page details{border-top:2px dashed var(--cream-2); color:var(--cink)} .cozy-page summary{font-family:var(--f-cute)}
+
+/* Escena: mantel ondulado, mesa vista desde arriba, cafecito y medialuna */
+.scene{position:relative; height:220px; flex:none; overflow:hidden; background:var(--cream)}
+.scene.small{height:170px}
+.cloth{position:absolute; left:-10px; right:-10px; top:-20px; height:188px; background:
+  radial-gradient(circle at 12px 0, transparent 11px, var(--rose) 12px) 0 100%/24px 14px repeat-x,
+  repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 14px, transparent 14px 28px),
+  repeating-linear-gradient(0deg, rgba(255,255,255,.55) 0 14px, transparent 14px 28px), var(--rose)}
+.scene.small .cloth{height:140px}
+.mesa{position:absolute; left:50%; top:40px; width:min(250px, 70vw); height:150px; transform:translateX(-50%); border-radius:50%; background:radial-gradient(ellipse at 50% 38%, #3c7a57, #285c40 78%); box-shadow:inset 0 0 0 8px #6b4329, 0 8px 0 rgba(58,38,23,.18)}
+.scene.small .mesa{height:120px; top:30px}
+.scene .fan{position:absolute; left:50%; top:62px; transform:translateX(-50%); display:flex; --card-w:46px}
+.scene.small .fan{top:48px; --card-w:40px}
+.scene .fan .card{margin:0 -8px; transform-origin:50% 140%}
+.scene .fan .card:nth-child(1){transform:rotate(-18deg)} .scene .fan .card:nth-child(2){transform:rotate(-6deg)}
+.scene .fan .card:nth-child(3){transform:rotate(6deg)} .scene .fan .card:nth-child(4){transform:rotate(18deg)}
+.scene.small .fan .card:nth-child(3){transform:rotate(16deg)}
+.cup{position:absolute; right:9%; top:146px; width:40px; height:40px; border-radius:50%; background:#fff; box-shadow:0 3px 0 rgba(58,38,23,.18), inset 0 0 0 7px #fff, inset 0 0 0 30px #7a4b2a}
+.cup::after{content:""; position:absolute; right:-9px; top:13px; width:12px; height:14px; border:4px solid #fff; border-radius:0 9px 9px 0; border-left:0}
+.croissant{position:absolute; left:8%; top:152px; width:46px; height:26px; border-radius:26px 26px 6px 6px; background:repeating-linear-gradient(90deg, #d79a4a 0 8px, #c7843a 8px 10px); transform:rotate(-14deg); box-shadow:0 3px 0 rgba(58,38,23,.18)}
+.sparkle{position:absolute; font-size:14px; color:var(--honey)}
+
+.cozy-page > *:not(.scene):not(.dim):not(.sheet){margin-left:max(16px, env(safe-area-inset-left,0px)); margin-right:max(16px, env(safe-area-inset-right,0px))}
+.offnote{background:#fff3d4; border-radius:14px; padding:8px 12px; font-size:.9rem; color:#6d5636}
+.hello{display:flex; justify-content:space-between; align-items:flex-end; gap:10px}
+.hello p{color:var(--soft)}
+.namebox{display:flex; flex-direction:column; gap:6px; width:100%}
+.namebox label{font:700 1rem var(--f-cute); color:var(--soft)}
+.nameRow{display:flex; gap:8px} .nameRow input{flex:1; min-width:0}
+.pill{background:var(--paper); color:var(--soft); border-radius:999px; padding:6px 12px; font-size:.8rem; white-space:nowrap; box-shadow:0 2px 0 rgba(58,38,23,.1)}
+.pill.dark{background:#3f2614; color:var(--paper); font-size:.9rem; padding:8px 16px}
+.games{display:flex; flex-direction:column; gap:10px}
+.game{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; background:var(--paper); border-radius:20px; padding:12px 12px 12px 14px; box-shadow:0 3px 0 rgba(58,38,23,.12)}
+.game .art{width:66px; height:66px; border-radius:16px; display:grid; place-items:center; flex:none}
+.game .art.g1{background:var(--mint)} .game .art.g2{background:#f3c0b9}
+.game .art .mini{display:flex; --card-w:26px} .game .art .mini .card{margin:0 -5px}
+.game .art .mini .card:nth-child(1){transform:rotate(-12deg)} .game .art .mini .card:nth-child(3){transform:rotate(12deg)}
+.game .art .card.wild::after{display:none}
+.game .gtxt{min-width:0} .game b{font:700 1.15rem/1.1 var(--f-cute); display:block}
+.game .gtxt > span{font-size:.82rem; color:var(--soft)}
+.game .chips{display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; justify-content:flex-start; min-height:0}
+.chips i{font-style:normal; font:700 .68rem var(--f-cute); background:var(--cream-2); color:#6b4329; border-radius:999px; padding:1px 7px}
+.play,.bigbtn{background:var(--honey); color:var(--cink); border-radius:999px; padding:9px 16px; box-shadow:0 3px 0 var(--honey-2) !important}
+.bigbtn{width:100%; padding:12px; font-size:1.05rem}
+.joinpill{display:flex; align-items:center; gap:6px; background:var(--paper); border-radius:999px; padding:5px 5px 5px 6px; box-shadow:0 3px 0 rgba(58,38,23,.12)}
+.joinpill input{flex:1; min-width:0; border:0; background:transparent; text-transform:uppercase; letter-spacing:.06em}
+.joinpill input::placeholder{text-transform:none; letter-spacing:0}
+.joinpill button{background:#3f2614; color:var(--paper); border-radius:999px; padding:8px 16px}
+.foot{display:flex; justify-content:space-around; padding-top:4px}
+.foot button{background:none; color:var(--soft); display:flex; flex-direction:column; align-items:center; gap:3px; font-size:.78rem; padding:4px}
+.foot button b{width:42px; height:42px; border-radius:14px; background:var(--paper); display:grid; place-items:center; font-size:1.1rem; color:#6b4329; box-shadow:0 2px 0 rgba(58,38,23,.1)}
+
+/* Hoja de opciones */
+.dim{position:fixed; inset:0; background:rgba(58,38,23,.42); z-index:60}
+.sheet{position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:min(560px, 100%); z-index:61; background:var(--cream); border-radius:26px 26px 0 0; padding:10px max(16px, env(safe-area-inset-left,0px)) max(18px, env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:10px; max-height:86vh; overflow:auto; box-shadow:0 -8px 24px rgba(0,0,0,.2)}
+.sheet .grab{width:42px; height:5px; border-radius:3px; background:#d8c4a2; margin:0 auto 4px}
+.sheet h3{margin:0; font:700 1.45rem var(--f-cute); color:#3f2614; text-align:center}
+.sheet .sub{text-align:center; color:var(--soft); font-size:.92rem; margin:-4px auto 2px}
+.opt{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center; text-align:left; background:var(--paper); color:var(--cink); border-radius:18px; padding:12px 14px; box-shadow:0 3px 0 rgba(58,38,23,.12) !important}
+.opt .ic{width:46px; height:46px; border-radius:14px; display:grid; place-items:center; font:700 1.3rem var(--f-cute)}
+.opt b{font:700 1.05rem var(--f-cute); display:block} .opt span span{font:400 .84rem var(--f-round); color:var(--soft)}
+.o1 .ic{background:var(--honey)} .o2 .ic{background:var(--sky); color:#1d3b57} .o3 .ic{background:var(--cream-2); color:#6b4329}
+.opt.main{outline:3px solid var(--honey)}
+.sheet .rules details{border-color:var(--cream-2)} .sheet .rules details[open]{padding-bottom:6px}
+.sheet .steps-box{background:var(--paper); color:var(--cink)}
+.okmsg{text-align:center; color:#3c7a57; font-weight:700}
+
+/* Sala de espera */
+.lobby{padding-top:max(14px, env(safe-area-inset-top,0px))}
+.lobbyTop{display:flex; justify-content:space-between; align-items:center; gap:10px}
+.lobbyTop b{font:700 1.35rem var(--f-cute); color:#3f2614}
+.lobbyTop button.ghost{background:var(--paper); color:var(--soft)}
+.ticketc{background:var(--paper); border-radius:20px; padding:14px; display:flex; flex-direction:column; gap:8px; align-items:center; box-shadow:0 3px 0 rgba(58,38,23,.12); position:relative; text-align:center}
+.ticketc .tag{font:700 .72rem var(--f-cute); color:var(--soft); text-transform:uppercase; letter-spacing:.08em}
+.ticketc .k,.invitecard .k{font:800 2rem "Alegreya SC", serif; letter-spacing:.2em; color:var(--rose-2)}
+.ticketc .btns{display:flex; gap:8px; width:100%; border-top:2px dashed var(--cream-2); padding-top:10px}
+.ticketc .btns button{flex:1; border-radius:999px; padding:10px}
+.ticketc .wa{background:var(--honey); color:var(--cink); box-shadow:0 3px 0 var(--honey-2) !important}
+.ticketc .cp{background:var(--cream-2); color:#6b4329}
+.tip{font-size:.84rem; color:var(--soft)}
+.seats{display:grid; grid-template-columns:repeat(4, 1fr); gap:10px 8px}
+.seat{position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; text-align:center}
+.seat .av{width:54px; height:54px; border-radius:50%; display:grid; place-items:center; font:700 1.35rem var(--f-cute); color:#fff; box-shadow:0 3px 0 rgba(58,38,23,.15)}
+.seat .av.empty{background:transparent; border:3px dashed #d8c4a2; color:#c9b38f; box-shadow:none}
+.seat .sn{font:700 .78rem var(--f-cute); color:#6b4329; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.seat .tm{font-size:.68rem; color:var(--soft)}
+.seat.off .av{opacity:.45}
+.seat .kick{position:absolute; top:-4px; right:calc(50% - 34px); width:22px; height:22px; padding:0; border-radius:50%; background:var(--paper); color:var(--rose-2); font-size:.9rem; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.2) !important}
+.wait{display:flex; gap:10px; align-items:center; background:#fff3d4; border-radius:16px; padding:10px 12px; font-size:.9rem; color:#6d5636}
+.dots{display:inline-flex; gap:4px; flex:none} .dots i{width:8px; height:8px; border-radius:50%; background:var(--honey); animation:wd 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.2s} .dots i:nth-child(3){animation-delay:.4s}
+.startbar{display:flex; gap:8px}
+.startbar button{border-radius:999px; padding:13px; font-size:1.05rem}
+.startbar .bot{background:var(--paper); color:#6b4329; box-shadow:0 3px 0 rgba(58,38,23,.12) !important; flex:none; padding:13px 18px}
+.startbar .go{flex:1; background:var(--honey); color:var(--cink); box-shadow:0 3px 0 var(--honey-2) !important}
+.startbar .go:disabled{background:#e3d5bb; color:#9c8768; box-shadow:none !important; opacity:1}
+.cozy-page .netwarn{border-radius:14px}
+
+/* Invitación */
+.invitecard{background:var(--paper); border-radius:22px; padding:18px; display:flex; flex-direction:column; gap:10px; align-items:stretch; box-shadow:0 3px 0 rgba(58,38,23,.12); text-align:center}
+.invitecard .tag{font:700 .72rem var(--f-cute); color:var(--soft); text-transform:uppercase; letter-spacing:.08em}
+.invitecard label{font:700 1rem var(--f-cute); color:var(--soft)}
+.invitecard .dots{align-self:center}
+.invitecard .err{color:#a8241c}
+@media (prefers-reduced-motion: reduce){ .dots i{animation:none} }
+
 @media (prefers-reduced-motion: reduce){ .card{transition:none} .waitdots i{animation:none} }
 @media (max-width:520px){ .hand .card.sel{transform:translateY(-8px)} .table{gap:14px} }
 </style>
@@ -279,6 +436,14 @@ details{border-color:var(--rim)}
 <body>
 <div class="wrap" id="app"></div>
 <div class="toast" id="toast" hidden></div>
+<div id="chat" hidden>
+  <div id="chatBox" class="chatbox" hidden>
+    <div class="chathead"><strong>Chat de la mesa</strong><button class="ghost mini" id="chatClose">Cerrar</button></div>
+    <div id="chatList" class="chatlist" aria-live="polite"></div>
+    <form id="chatForm" class="chatform"><input id="chatInput" maxlength="200" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button type="submit">Enviar</button></form>
+  </div>
+  <button id="chatBtn" class="chatbtn">Chat</button>
+</div>
 
 <script>
 "use strict";
@@ -390,7 +555,7 @@ let G = null;
 const BOT_NAMES = ["Lupe (bot)", "Tito (bot)", "Nena (bot)", "Pepa (bot)", "Rulo (bot)", "Chela (bot)"];
 
 function hostInit(game){
-  G = { game: game || "once", phase:"lobby", players:[], round:0, wild:3, dealer:0, turn:0, deck:[], discard:[], wentOut:null, finalLeft:0, lastDraw:{}, log:[], reveal:null };
+  G = { game: game || "once", phase:"lobby", players:[], round:0, wild:3, dealer:0, turn:0, deck:[], discard:[], wentOut:null, finalLeft:0, lastDraw:{}, log:[], reveal:null, chat:[] };
   G.players.push({pid:S.pid, name:S.name, hand:[], total:0, rounds:[], online:true, bot:false});
 }
 function addLog(msg){ G.log.unshift(msg); G.log = G.log.slice(0, 8); }
@@ -504,7 +669,7 @@ function scheduleBots(){
 }
 
 function viewFor(pi){
-  if (G.game === "truco") return Object.assign({game:"truco", phase:G.phase, me:pi, code:S.code, log:G.log,
+  if (G.game === "truco") return Object.assign({game:"truco", phase:G.phase, me:pi, code:S.code, log:G.log, chat:G.chat,
     players:G.players.map(p => ({name:p.name, pid:p.pid, online:p.online, bot:p.bot}))}, trucoView(pi));
   const me = G.players[pi];
   return {
@@ -513,7 +678,7 @@ function viewFor(pi){
     top:G.discard[G.discard.length - 1] || null,
     hand: me ? me.hand : [], lastDraw: me ? G.lastDraw[me.pid] : null,
     players: G.players.map(p => ({name:p.name, pid:p.pid, count:p.hand.length, total:p.total, rounds:p.rounds, online:p.online, bot:p.bot})),
-    log:G.log, reveal:G.reveal,
+    log:G.log, reveal:G.reveal, chat:G.chat,
   };
 }
 function hostSync(){
@@ -531,16 +696,27 @@ function hostHandle(conn, msg){
     let p = pid && pid !== S.pid ? G.players.find(x => x.pid === pid) : null;
     if (!pid || pid === S.pid){ conn.send({t:"error", m:"No puedes unirte a tu propia sala desde la misma pestaña."}); return; }
     if (!p){
-      if (G.phase !== "lobby"){ conn.send({t:"error", m:"La partida ya empezó. Pide al anfitrión que abra una sala nueva."}); return; }
+      if (G.phase !== "lobby"){ conn.send({t:"error", m:"Esta partida ya empezó. Pide a quien creó la sala que abra una nueva."}); return; }
       if (G.players.length >= maxP(G.game)){ conn.send({t:"error", m:`La mesa está llena (máximo ${maxP(G.game)}).`}); return; }
       p = {pid, name, hand:[], total:0, rounds:[], online:true, bot:false}; G.players.push(p);
       addLog(`${name} se unió.`);
-    } else { p.online = true; if (G.phase === "lobby") p.name = name; addLog(`${p.name} volvió a conectarse.`); }
+    } else {
+      if (p.left){ p.left = false; p.bot = false; addLog(`${p.name} volvió a la mesa.`); }
+      else if (!p.online) addLog(`${p.name} volvió a conectarse.`);
+      p.online = true; if (G.phase === "lobby") p.name = name;
+    }
     conn.pid = pid; S.conns.set(pid, conn); hostSync(); return;
   }
   const pi = G.players.findIndex(p => p.pid === conn.pid);
   if (pi < 0) return;
-  if (msg.t === "act"){ const err = act(pi, msg.a || {}); if (err) conn.send({t:"error", m:err}); hostSync(); }
+  if (msg.t === "act"){ const err = act(pi, msg.a || {}); if (err) conn.send({t:"error", m:err}); hostSync(); return; }
+  if (msg.t === "chat"){ addChat(G.players[pi].name, msg.text); hostSync(); return; }
+  if (msg.t === "leave"){
+    const p = G.players[pi]; S.conns.delete(conn.pid);
+    if (G.phase === "lobby"){ G.players.splice(pi, 1); addLog(`${p.name} salió de la sala.`); }
+    else { p.left = true; p.bot = true; p.online = true; addLog(`${p.name} salió de la partida; un bot juega en su lugar.`); }
+    hostSync(); return;
+  }
 }
 
 /* ===================== Truco argentino ===================== */
@@ -783,34 +959,60 @@ async function keepAwake(){
 function setNet(state){ if (S.net !== state){ S.net = state; if (S.screen === "game") render(); } }
 const roomLink = (code, game) => location.origin + location.pathname + "?sala=" + code + "&juego=" + game;
 
+/* ===== Salas por Supabase Realtime: los mensajes van por https, así que funcionan en cualquier red ===== */
+const SB_URL = "https://vrlyjzcihdltjugtazgd.supabase.co";   // dirección del proyecto de Supabase
+const SB_KEY = "sb_publishable_TN7EkRA-QfmmiLstzLR7Fw_KQQDLXWt";   // clave pública del proyecto (anon / publishable): está pensada para ir en la página
+let sb = null;
+function sbClient(){
+  if (sb) return sb;
+  if (!window.supabase || !/^https:\/\//.test(SB_URL) || SB_KEY.startsWith("__")) return null;
+  sb = window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:false, autoRefreshToken:false}, realtime:{params:{eventsPerSecond:30}}});
+  return sb;
+}
+function noServer(){ toast(navigator.onLine ? "No se pudo cargar la conexión de salas. Recarga la página." : "Sin internet. Puedes jugar sin conexión contra los bots."); }
+function openChannel(code){
+  const ch = sbClient().channel("sala-" + code, {config:{broadcast:{self:false}, presence:{key:S.pid}}});
+  S.ch = ch; return ch;
+}
+function chSend(event, payload){
+  const ch = S.ch; if (!ch) return;
+  try { const p = ch.send({type:"broadcast", event, payload}); if (p && p.catch) p.catch(() => {}); } catch(e){}
+}
+function leaveChannel(){
+  const ch = S.ch; S.ch = null; if (!ch) return;
+  try { ch.untrack(); } catch(e){}
+  try { sbClient().removeChannel(ch); } catch(e){}
+}
+
+/* Quien crea la sala guarda la partida y le manda a cada persona solo lo que puede ver. */
 function createRoom(game){
   if (game) S.newGame = game;
-  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet o juega sin conexión."); return; }
+  if (!sbClient()){ noServer(); return; }
   S.busy = true; S.code = newCode(); render();
-  hostPeer();
-}
-/* Abre la sala con el código de S.code. Si el teléfono la pausa (por ejemplo al cambiar a WhatsApp), se reconecta con el MISMO código. */
-function hostPeer(){
-  const peer = new Peer(PREFIX + S.code);
-  S.peer = peer;
-  const retry = (ms) => setTimeout(() => { if (S.peer === peer && !peer.destroyed && peer.disconnected){ try { peer.reconnect(); } catch(e){} } }, ms);
-  peer.on("open", () => {
-    setNet("ok");
-    if (!S.isHost){ S.isHost = true; S.busy = false; hostInit(S.newGame); S.screen = "game"; hostSync(); keepAwake(); }
+  const ch = openChannel(S.code);
+  ch.on("broadcast", {event:"c2h"}, ({payload}) => {
+    if (S.ch !== ch || !G || !payload || !payload.from) return;
+    const from = String(payload.from).slice(0, 20);
+    let conn = S.conns.get(from);
+    if (!conn) conn = {pid: from, open: true, send: m => chSend("h2c", Object.assign({to: from}, m))};
+    hostHandle(conn, payload);
   });
-  peer.on("connection", conn => {
-    conn.on("data", m => hostHandle(conn, m));
-    conn.on("close", () => { const p = G && G.players.find(x => x.pid === conn.pid); if (p && S.conns.get(conn.pid) === conn){ p.online = false; S.conns.delete(conn.pid); addLog(`${p.name} se desconectó.`); hostSync(); } });
+  ch.on("presence", {event:"leave"}, ({key}) => {
+    if (S.ch !== ch || !G || key === S.pid) return;
+    const p = G.players.find(x => x.pid === key);
+    if (p && !p.bot && p.online){ p.online = false; addLog(`${p.name} se desconectó.`); hostSync(); }
   });
-  peer.on("disconnected", () => { setNet("retry"); retry(1500); });
-  peer.on("error", e => {
-    if (e.type === "unavailable-id"){
-      if (!S.isHost){ peer.destroy(); S.code = newCode(); hostPeer(); return; }   // código ocupado al crear: otro código
-      setNet("retry"); retry(4000); return;                                       // la sala sigue siendo nuestra: reintentar
+  ch.subscribe(status => {
+    if (S.ch !== ch) return;
+    if (status === "SUBSCRIBED"){
+      setNet("ok");
+      ch.track({role:"host", name:S.name}).catch(() => {});
+      if (!S.isHost){ S.isHost = true; S.busy = false; hostInit(S.newGame); S.screen = "game"; hostSync(); keepAwake(); }
+      else hostSync();   // al reconectar, todos reciben el estado de nuevo
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT"){
+      if (!S.isHost){ S.busy = false; leaveChannel(); render(); toast("No pude abrir la sala. Revisa tu internet e inténtalo de nuevo."); return; }
+      setNet("retry");
     }
-    if (e.type === "peer-unavailable") return;
-    if (!S.isHost){ S.busy = false; render(); toast("No hay conexión con el servidor de salas. Revisa tu internet o juega sin conexión."); return; }
-    setNet("retry"); retry(3000);
   });
 }
 
@@ -823,90 +1025,109 @@ function playOffline(game){
   S.screen = "game"; hostSync(); keepAwake();
 }
 function goHome(){
-  clearTimeout(botTimer); clearTimeout(S.joinT); clearTimeout(S.retryT); S.retryT = null; S.joining = null;
-  if (S.peer){ try { S.peer.destroy(); } catch(e){} }
-  S.peer = null; S.conn = null; S.conns = new Map(); S.isHost = false; S.offline = false; S.busy = false; S.joinError = "";
-  S.view = null; S.code = ""; S.screen = "home"; G = null;
+  clearTimeout(botTimer); clearInterval(S.joinI); S.joining = null;
+  leaveChannel();
+  S.conn = null; S.conns = new Map(); S.isHost = false; S.offline = false; S.busy = false; S.joinError = ""; S.hostHere = null;
+  S.view = null; S.code = ""; S.screen = "home"; S.leaveArm = false; S.sheet = null; G = null;
+  S.chatOpen = false; S.chatSeen = 0; updateChat();
   try { history.replaceState(null, "", location.pathname); } catch(e){}
   render();
 }
+/* Salir de la mesa: avisa a los demás y vuelve al inicio. */
+function leaveGame(){
+  if (S.isHost && !S.offline) chSend("h2c", {to:"*", t:"closed"});
+  else if (!S.isHost) chSend("c2h", {from:S.pid, t:"leave"});
+  setTimeout(goHome, 250);
+}
 
-/* Unirse: entra solo y, si la sala no responde todavía, sigue intentando hasta 3 minutos. */
+/* Unirse: entra sola a la sala y, si quien la creó no está conectada, espera hasta 3 minutos. */
 function joinRoom(code){
-  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet."); return; }
+  if (!sbClient()){ noServer(); return; }
   code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (code.length < 4){ toast("Escribe el código de la sala."); return; }
-  S.code = code; S.busy = true; S.joinError = "";
-  S.joining = {start: Date.now(), tries: 0};
-  S.screen = "joining"; render();
-  if (!S.peer || S.peer.destroyed || S.isHost){
-    const peer = new Peer(); S.peer = peer;
-    peer.on("error", e => {
-      if (S.peer !== peer) return;
-      if (e.type === "peer-unavailable" || e.type === "network" || e.type === "server-error" || e.type === "socket-error" || e.type === "socket-closed") retryJoin();
-    });
-    peer.on("disconnected", () => setTimeout(() => { if (S.peer === peer && !peer.destroyed && peer.disconnected){ try { peer.reconnect(); } catch(e){} } }, 1500));
-  }
-  if (S.peer.open) tryConnect(); else S.peer.once("open", tryConnect);
-}
-function tryConnect(){
-  const peer = S.peer; if (!peer || peer.destroyed || !S.joining && S.screen !== "game") return;
-  if (S.conn && S.conn.open) return;
-  if (S.joining) S.joining.tries++;
-  const conn = peer.connect(PREFIX + S.code, {reliable:true});
-  S.conn = conn;
-  clearTimeout(S.joinT);
-  S.joinT = setTimeout(() => { if (!conn.open){ try { conn.close(); } catch(e){} retryJoin(); } }, 8000);
-  conn.on("open", () => { clearTimeout(S.joinT); conn.send({t:"join", name:S.name, pid:S.pid}); });
-  conn.on("data", m => {
-    if (conn !== S.conn) return;
-    if (m.t === "state"){
-      const first = S.screen !== "game";
-      S.joining = null; S.busy = false; S.view = m.v; S.screen = "game"; setNet("ok"); render();
-      if (first) keepAwake();
-    }
-    else if (m.t === "error"){
-      if (S.screen === "game") { toast(m.m); return; }
-      S.joining = null; S.busy = false; S.joinError = m.m; S.screen = "invite"; render();
-    }
-    else if (m.t === "kicked"){ goHome(); toast("Quien creó la sala te sacó de la mesa."); }
+  leaveChannel(); clearInterval(S.joinI);
+  S.code = code; S.busy = true; S.joinError = ""; S.hostHere = null; S.isHost = false;
+  S.joining = {start: Date.now()}; S.screen = "joining"; render();
+  const ch = openChannel(code);
+  ch.on("broadcast", {event:"h2c"}, ({payload}) => {
+    if (S.ch !== ch || !payload || (payload.to !== S.pid && payload.to !== "*")) return;
+    onHostMsg(payload);
   });
-  conn.on("close", () => {
-    if (conn !== S.conn || S.screen !== "game") return;
-    setNet("retry");
-    S.joining = {start: Date.now(), tries: 0, inGame: true};
-    retryJoin();
+  ch.on("presence", {event:"sync"}, () => {
+    if (S.ch !== ch) return;
+    const here = Object.values(ch.presenceState()).some(list => list.some(m => m.role === "host"));
+    if (here !== S.hostHere){ S.hostHere = here; if (here) sendJoin(); render(); }
   });
-}
-function retryJoin(){
-  if (!S.joining || S.retryT) return;
-  clearTimeout(S.joinT);
-  if (Date.now() - S.joining.start > 180000){
-    S.joining = null; S.busy = false;
-    S.joinError = "No encontré la sala. Pide a quien la creó que vuelva a abrir La Sobremesa y toca Entrar otra vez.";
-    if (S.screen !== "game") S.screen = "invite";
-    render(); return;
-  }
-  if (S.screen !== "game") render();
-  S.retryT = setTimeout(() => {
-    S.retryT = null;
-    if (!S.joining || !S.peer || S.peer.destroyed) return;
-    if (S.peer.open) tryConnect(); else { try { S.peer.reconnect(); } catch(e){} S.peer.once("open", tryConnect); }
+  ch.subscribe(status => {
+    if (S.ch !== ch) return;
+    if (status === "SUBSCRIBED"){ ch.track({role:"player", name:S.name}).catch(() => {}); sendJoin(); }
+  });
+  S.joinI = setInterval(() => {
+    if (S.ch !== ch){ clearInterval(S.joinI); return; }
+    if (S.screen !== "joining") return;
+    if (Date.now() - S.joining.start > 180000){
+      clearInterval(S.joinI); leaveChannel(); S.joining = null; S.busy = false; S.screen = "invite";
+      S.joinError = S.hostHere ? "La sala no responde. Pide a quien la creó que recargue la página." : "No encontré la sala. Revisa el código o pide a quien la creó que vuelva a abrir La Sobremesa.";
+      render(); return;
+    }
+    sendJoin(); render();
   }, 3000);
 }
-/* Al volver a la app: reconectar enseguida y volver a pedir que no se apague la pantalla. */
+function sendJoin(){ chSend("c2h", {from:S.pid, t:"join", name:S.name, pid:S.pid}); }
+function onHostMsg(m){
+  if (m.t === "state"){
+    const first = S.screen !== "game";
+    S.joining = null; S.busy = false; S.view = m.v; S.screen = "game"; S.net = "ok"; render();
+    if (first){ clearInterval(S.joinI); keepAwake(); }
+  }
+  else if (m.t === "error"){
+    if (S.screen === "game"){ toast(m.m); return; }
+    clearInterval(S.joinI); leaveChannel(); S.joining = null; S.busy = false; S.joinError = m.m; S.screen = "invite"; render();
+  }
+  else if (m.t === "kicked"){ goHome(); toast("Quien creó la sala te sacó de la mesa."); }
+  else if (m.t === "closed"){ goHome(); toast("Quien creó la sala la cerró."); }
+}
+/* Al volver a la app: pedir el estado de nuevo y que no se apague la pantalla. */
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
-  const p = S.peer;
-  if (p && !p.destroyed && p.disconnected){ try { p.reconnect(); } catch(e){} }
-  if (!S.isHost && S.screen === "game" && (!S.conn || !S.conn.open) && !S.joining){ S.joining = {start: Date.now(), tries: 0, inGame: true}; retryJoin(); }
+  if (!S.isHost && S.ch && S.screen === "game") sendJoin();
+  if (S.isHost && S.ch && G) hostSync();
   if (S.screen === "game") keepAwake();
 });
 
 function send(a){
   if (S.isHost){ const err = act(0, a); if (err) toast(err); hostSync(); }
-  else if (S.conn && S.conn.open) S.conn.send({t:"act", a});
-  else toast("Reconectando con la sala… prueba de nuevo en unos segundos.");
+  else if (S.ch) chSend("c2h", {from:S.pid, t:"act", a});
+  else toast("Sin conexión con la sala.");
+}
+
+/* ===== Chat de la sala ===== */
+function addChat(name, text){
+  text = String(text || "").trim().slice(0, 200); if (!text || !G) return;
+  G.chat.push({n:name, t:text}); G.chat = G.chat.slice(-60);
+}
+function sendChat(text){
+  text = String(text || "").trim(); if (!text) return;
+  if (S.isHost){ addChat(S.name, text); hostSync(); }
+  else chSend("c2h", {from:S.pid, t:"chat", text});
+}
+function updateChat(){
+  const root = $("#chat"); if (!root) return;
+  const v = S.view, on = !!(v && v.chat && S.screen === "game" && !S.offline);
+  root.hidden = !on; if (!on) return;
+  const list = v.chat, meName = v.players[v.me] ? v.players[v.me].name : "";
+  if (S.chatOpen) S.chatSeen = list.length;
+  const unread = Math.max(0, list.length - (S.chatSeen || 0));
+  $("#chatBtn").innerHTML = `Chat${unread ? `<span class="badge">${unread}</span>` : ""}`;
+  $("#chatBox").hidden = !S.chatOpen;
+  const box = $("#chatList");
+  if (box.dataset.n !== String(list.length) || box.dataset.open !== String(S.chatOpen)){
+    const last = list[list.length - 1];
+    if (!S.chatOpen && last && Number(box.dataset.n || 0) < list.length && box.dataset.n !== undefined && last.n !== meName) toast(`${last.n}: ${last.t}`);
+    box.innerHTML = list.length ? list.map(m => `<p class="${m.n === meName ? "mine" : ""}"><b>${esc(m.n)}</b>${esc(m.t)}</p>`).join("") : `<p class="muted">Escribe algo para saludar a la mesa.</p>`;
+    box.dataset.n = String(list.length); box.dataset.open = String(S.chatOpen);
+    box.scrollTop = box.scrollHeight;
+  }
 }
 
 /* ===================== Interfaz ===================== */
@@ -988,11 +1209,11 @@ function renderTruco(v){
       <span class="label">Fin de la partida</span>
       <h2>${t.winner === my ? (N === 2 ? "¡Ganaste!" : "¡Ganó tu equipo!") : `Ganó ${N === 2 ? pname((me + 1) % 2) : "el otro equipo"}`} ${t.scores[t.winner]} a ${t.scores[1 - t.winner]}</h2>
       <p class="muted">${teamNames(t.winner)}</p>
-      <div class="row">${S.isHost ? `<button id="again">Jugar otra vez</button>` : `<p class="muted">Esperando a quien creó la sala…</p>`}</div>
+      <div class="row">${S.isHost ? `<button id="again">Jugar otra vez</button>` : `<p class="muted">Esperando a quien creó la sala…</p>`}<button class="ghost" id="leaveNow">Volver al inicio</button></div>
     </div></div>` : "";
   return `<div class="topbar">
       <div class="round"><span class="label">Truco a ${t.target}</span><span class="wildchip">${lvl}</span></div>
-      <span class="muted">${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>
+      <span class="row"><span class="muted">${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>${leaveBtn()}</span>
     </div>
     <section class="panel tally">${row(my, N === 2 ? "Tú" : "Nosotros")}${row(1 - my, N === 2 ? pname((me + 1) % 2) : "Ellos")}</section>
     <div class="tt n${N}">
@@ -1018,23 +1239,24 @@ function renderTruco(v){
 function renderInvite(){
   const g = GAME_NAME[urlGame];
   const joining = S.screen === "joining";
-  const long = joining && S.joining && (Date.now() - S.joining.start > 7000);
-  return `<header class="hero">
-      <span class="label">La Sobremesa · invitación</span>
+  const waitMsg = S.hostHere === false ? "Quien creó la mesa no está conectada ahora mismo (puede que esté en otra app). En cuanto vuelva, entras automáticamente."
+    : S.hostHere ? "La mesa está abierta. Entrando…" : "Conectando con la mesa…";
+  return `<div class="cozy-page invite">
+    <div class="scene small" aria-hidden="true"><div class="cloth"></div><div class="mesa"></div>
+      <div class="fan">${tCardHTML({s:0, r:1})}${tCardHTML({s:2, r:7})}${tCardHTML({s:3, r:3})}</div></div>
+    <div class="invitecard">
+      <span class="tag">La Sobremesa · invitación</span>
       <h1>${joining ? "Entrando a la mesa…" : g ? `Te invitaron a jugar ${g}` : "Te invitaron a una partida"}</h1>
-    </header>
-    <section class="panel invite">
-      ${joining ? `<p>Sala <strong class="code" style="font-size:1.3rem">${esc(S.code)}</strong></p>
-          <div class="waitdots" aria-hidden="true"><i></i><i></i><i></i></div>
-          <p class="muted">${long ? "Quien creó la sala parece estar fuera de La Sobremesa (por ejemplo, mandando el enlace por WhatsApp). En cuanto vuelva, entras automáticamente." : "Conectando con la sala…"}</p>
-          <div class="row"><button class="ghost" id="cancelJoin">Cancelar</button></div>`
-        : `<label class="label" for="nm">Tu nombre</label>
+      ${joining ? `<span class="k">${esc(S.code)}</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <p class="tip">${waitMsg}</p><button class="linklike" id="cancelJoin">Cancelar</button>`
+        : `<label for="nm">¿Cómo te llamas?</label>
           <input id="nm" maxlength="20" placeholder="Por ejemplo: Lucía" value="${esc(S.name)}" autocomplete="nickname">
-          <div class="row"><button id="enter">Entrar a la partida</button></div>
+          <button class="bigbtn" id="enter">Entrar a la partida</button>
           ${S.joinError ? `<p class="err">${esc(S.joinError)}</p>` : ""}
-          <p class="muted">Sala ${esc(S.code || urlCode)}</p>`}
-    </section>
-    <p class="muted"><button class="linklike" id="toHome">Ir al inicio de La Sobremesa</button></p>`;
+          <p class="tip">Mesa ${esc(S.code || urlCode)}</p>`}
+    </div>
+    <button class="linklike" id="toHome">Ir al inicio de La Sobremesa</button>
+  </div>`;
 }
 
 /* Orden de la mano que elige cada persona: se guarda por ronda (o por mano en el truco); las cartas nuevas van al final. */
@@ -1120,106 +1342,270 @@ function installSteps(){
   const ios = isIOS(), android = /android/i.test(ua), samsung = /SamsungBrowser/i.test(ua), firefox = /firefox|fxios/i.test(ua);
   const li = a => `<ol class="steps">${a.map(x => `<li>${x}</li>`).join("")}</ol>`;
   if (inApp) return `<p>Estás viendo la página dentro de otra app (por ejemplo WhatsApp o Instagram), y desde ahí no se puede instalar.</p>`
-    + li([`Toca el menú de esa ventana (los tres puntos <strong>⋯</strong> o <strong>⋮</strong>, arriba o abajo).`,
-          `Elige <strong>Abrir en el navegador</strong> (${ios ? "Safari" : "Chrome"}).`,
-          `Ya en el navegador, vuelve a tocar <strong>Instalar en este dispositivo</strong>.`]);
-  if (ios) return li([`Toca el botón <strong>Compartir</strong> (el cuadrado con una flecha hacia arriba; en Safari está abajo en el centro, en Chrome arriba a la derecha).`,
-          `Desliza hacia abajo y toca <strong>Añadir a pantalla de inicio</strong>.`,
-          `Toca <strong>Añadir</strong>. El icono aparece junto a tus otras apps.`]);
+    + li([`Toca el menú de esa ventana (los tres puntos <strong>⋯</strong> o <strong>⋮</strong>).`, `Elige <strong>Abrir en el navegador</strong> (${ios ? "Safari" : "Chrome"}).`, `Ya en el navegador, vuelve a tocar <strong>Instalar</strong>.`]);
+  if (ios) return li([`Toca el botón <strong>Compartir</strong> (el cuadrado con una flecha hacia arriba).`, `Desliza y toca <strong>Añadir a pantalla de inicio</strong>.`, `Toca <strong>Añadir</strong>. El icono aparece junto a tus apps.`]);
   if (samsung) return li([`Toca el menú <strong>≡</strong> abajo a la derecha.`, `Elige <strong>Añadir página a</strong> → <strong>Pantalla de inicio</strong>.`]);
-  if (android) return li([`Toca el menú <strong>⋮</strong> arriba a la derecha de Chrome.`,
-          `Elige <strong>Instalar aplicación</strong> o <strong>Añadir a pantalla de inicio</strong>.`, `Confirma con <strong>Instalar</strong>.`]);
-  if (firefox) return `<p>Firefox en la computadora no instala páginas como app. Abre este enlace en Chrome o Edge y vuelve a tocar el botón.</p>`;
-  return li([`Busca el icono de instalar en la barra de direcciones (una pantalla con una flecha), a la derecha.`,
-          `O abre el menú del navegador (<strong>⋮</strong> o <strong>⋯</strong>) y elige <strong>Instalar La Sobremesa</strong> (en Chrome puede estar en “Enviar, guardar y compartir”).`]);
-}
-function installHTML(){
-  if (!location.protocol.startsWith("http")) return "";
-  if (isStandalone()) return `<section class="panel"><h2>App instalada</h2><p class="muted">Estás usando La Sobremesa como app. Sin internet puedes jugar contra los bots.</p></section>`;
-  return `<section class="panel">
-      <h2>Tenerla como app</h2>
-      <p class="muted">Instálala y se abre como una app, con su icono. Una vez instalada puedes jugar contra los bots aunque no tengas internet.</p>
-      <div class="row"><button id="install">Instalar en este dispositivo</button></div>
-      ${S.showInstall ? `<div class="steps-box" id="installSteps">${installSteps()}</div>` : ""}
-    </section>`;
+  if (android) return li([`Toca el menú <strong>⋮</strong> arriba a la derecha de Chrome.`, `Elige <strong>Instalar aplicación</strong> o <strong>Añadir a pantalla de inicio</strong>.`, `Confirma con <strong>Instalar</strong>.`]);
+  if (firefox) return `<p>Firefox en la computadora no instala páginas como app. Abre este enlace en Chrome o Edge.</p>`;
+  return li([`Busca el icono de instalar a la derecha de la barra de direcciones.`, `O abre el menú del navegador y elige <strong>Instalar La Sobremesa</strong>.`]);
 }
 
+/* ===== Portada "Mesa servida" ===== */
+const GAME_INFO = {
+  once:  {sub:"El comodín cambia cada ronda", chips:["2 a 7", "40 min"], art:"g1"},
+  truco: {sub:"Envido, truco y vale cuatro", chips:["1 vs 1", "parejas", "a 30"], art:"g2"},
+};
+const SEAT_COLORS = ["#c8574c", "#4f86b8", "#3c7a57", "#b07a2a", "#7b4fa3", "#2a8a8a", "#a8456e"];
+function gameArt(game, w){
+  return game === "truco"
+    ? tCardHTML({s:0, r:1}) + tCardHTML({s:1, r:1}) + tCardHTML({s:2, r:7})
+    : cardHTML({s:0, r:7}, 9) + cardHTML({j:true}, 9) + cardHTML({s:1, r:9}, 9);
+}
+function sheetHTML(){
+  const sh = S.sheet; if (!sh) return "";
+  let body = "";
+  if (sh.type === "play"){
+    body = `<h3>${GAME_NAME[sh.game]}</h3><p class="sub">¿Cómo quieres jugar?</p>
+      <button class="opt o1 main" id="sheetFriends" ${S.busy ? "disabled" : ""}><span class="ic">♥</span><span><b>${S.busy ? "Abriendo la mesa…" : "Con amigos"}</b><span>Abres una mesa y compartes el enlace por WhatsApp</span></span></button>
+      <button class="opt o2" id="sheetOffline"><span class="ic">☾</span><span><b>Sin conexión</b><span>Contra los bots, aunque no tengas internet</span></span></button>
+      <button class="opt o3" id="sheetRules"><span class="ic">?</span><span><b>Ver las reglas</b><span>Cómo se juega, en un minuto</span></span></button>`;
+  } else if (sh.type === "offline"){
+    body = `<h3>Sin conexión</h3><p class="sub">Juegas contra los bots, aunque no tengas internet.</p>
+      <button class="opt o1" data-off="once"><span class="ic">★</span><span><b>Once Rondas</b><span>Tú y 2 bots (puedes añadir más)</span></span></button>
+      <button class="opt o2" data-off="truco"><span class="ic">♣</span><span><b>Truco</b><span>Mano a mano contra un bot, o en parejas</span></span></button>`;
+  } else if (sh.type === "rules"){
+    body = `<h3>Reglas</h3><div class="rules">${sh.game === "truco" ? trucoRules : sh.game === "once" ? rulesHTML : rulesHTML + trucoRules}</div>`;
+  } else if (sh.type === "install"){
+    body = `<h3>Tenerla como app</h3><p class="sub">Se abre como una app, con su icono, y sin internet puedes jugar contra los bots.</p>
+      ${isStandalone() ? `<p class="okmsg">Ya la estás usando como app.</p>` : installEvt ? `<button class="bigbtn" id="install">Instalar La Sobremesa</button>` : `<div class="steps-box">${installSteps()}</div>`}`;
+  }
+  return `<div class="dim" id="sheetDim"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${body}<button class="linklike" id="sheetClose">Cerrar</button></div>`;
+}
 function renderHome(){
-  const fan = [{s:0,r:7},{s:1,r:8},{j:true},{s:3,r:10},{s:4,r:11}].map(c => cardHTML(c, 9)).join("");
-  return `<header class="hero">
-      <span class="label">Juegos de cartas online · gratis</span>
-      <h1>La Sobremesa</h1>
-      <p class="muted" style="max-width:56ch">Abre una mesa, comparte el código y juega a las cartas con quien quieras, estés donde estés. Sin cuentas ni descargas.</p>
-    </header>
-    ${!navigator.onLine ? `<div class="banner">Estás sin conexión. Puedes jugar contra los bots con “Jugar sin conexión”; para jugar con otras personas hace falta internet.</div>` : ""}
-    <section class="panel">
-      <label class="label" for="nm">Tu nombre</label>
-      <input id="nm" maxlength="20" placeholder="Por ejemplo: Lucía" value="${esc(S.name)}" autocomplete="nickname">
-    </section>
-    <div class="games">
-      <section class="panel">
-        <span class="label">Juego · 2 a 7 personas · unos 40 minutos</span>
-        <h2>Once Rondas</h2>
-        <div class="hero-fan" aria-hidden="true">${fan}</div>
-        <p class="muted">De 3 a 13 cartas, y en cada ronda cambia el comodín. Arma grupos y escaleras y termina con la menor cantidad de puntos.</p>
-        <p class="muted">Al crear la sala, la partida corre en tu navegador: mantén esta pestaña abierta hasta el final.</p>
-        <div class="row"><button id="create" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Once Rondas"}</button><button class="ghost" id="offOnce">Jugar sin conexión</button></div>
-      </section>
-      <section class="panel">
-        <span class="label">Juego · de a 2 o de a 4 en parejas · a 30 puntos</span>
-        <h2>Truco</h2>
-        <div class="hero-fan" aria-hidden="true">${[{s:0,r:1},{s:1,r:1},{s:0,r:7},{s:2,r:7},{s:3,r:3}].map(c => tCardHTML(c)).join("")}</div>
-        <p class="muted">El truco argentino de siempre: envido, real envido, falta envido, truco, retruco y vale cuatro. Sin flor.</p>
-        <p class="muted">Para jugar en parejas hacen falta 4 personas; puedes completar con bots.</p>
-        <div class="row"><button id="createTruco" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Crear sala de Truco"}</button><button class="ghost" id="offTruco">Jugar sin conexión</button></div>
-      </section>
+  const named = !!S.name && !S.editName;
+  const games = ["once", "truco"].map(g => `<div class="game">
+      <div class="art ${GAME_INFO[g].art}"><div class="mini">${gameArt(g)}</div></div>
+      <div class="gtxt"><b>${GAME_NAME[g]}</b><span>${GAME_INFO[g].sub}</span><div class="chips">${GAME_INFO[g].chips.map(c => `<i>${c}</i>`).join("")}</div></div>
+      <button class="play" data-play="${g}">Jugar</button></div>`).join("");
+  return `<div class="cozy-page">
+    <div class="scene" aria-hidden="true"><div class="cloth"></div><div class="mesa"></div>
+      <div class="fan">${tCardHTML({s:0, r:1})}${tCardHTML({s:2, r:7})}${cardHTML({j:true}, 9)}${tCardHTML({s:3, r:3})}</div>
+      <div class="croissant"></div><div class="cup"></div><span class="sparkle" style="left:12%;top:18%">✦</span><span class="sparkle" style="right:14%;top:12%">✦</span></div>
+    ${!navigator.onLine ? `<div class="offnote">Estás sin conexión: puedes jugar contra los bots desde “Sin conexión”.</div>` : ""}
+    <div class="hello">
+      ${named ? `<div><h1>¡Hola, ${esc(S.name)}!</h1><p>¿A qué jugamos hoy?</p></div><button class="pill" id="nameEdit">cambiar nombre</button>`
+        : `<div class="namebox"><h1>¡Hola!</h1><label for="nm">¿Cómo te llamas?</label>
+            <div class="nameRow"><input id="nm" maxlength="20" placeholder="Por ejemplo: Lucía" value="${esc(S.name)}" autocomplete="nickname"><button class="pill dark" id="nameOk">Listo</button></div></div>`}
     </div>
-    <div class="grid2">
-      <section class="panel">
-        <h2>Unirme a una sala</h2>
-        <p class="muted">Pide el código a quien abrió la mesa.</p>
-        <label class="label" for="code">Código de la sala</label>
-        <input id="code" maxlength="6" placeholder="ABCDE" value="${esc(urlCode || "")}" style="text-transform:uppercase;letter-spacing:.15em">
-        <div class="row"><button id="join" ${S.busy ? "disabled" : ""}>${S.busy ? "Conectando…" : "Unirme"}</button></div>
-      </section>
-      ${installHTML()}
-    </div>
-    ${rulesHTML}${trucoRules}`;
+    <div class="games">${games}</div>
+    <div class="joinpill"><label for="code" class="sr">Código de la sala</label><input id="code" maxlength="6" placeholder="¿Te pasaron un código?" value="${esc(urlCode || "")}" autocomplete="off"><button id="join" ${S.busy ? "disabled" : ""}>Unirme</button></div>
+    <nav class="foot"><button id="footOffline"><b>☾</b>Sin conexión</button><button id="footInstall"><b>⌂</b>Instalar</button><button id="footRules"><b>?</b>Reglas</button></nav>
+    ${sheetHTML()}
+  </div>`;
 }
 
 function renderLobby(v){
-  const host = S.isHost;
-  const link = roomLink(v.code, v.game);
-  const shareable = location.protocol.startsWith("http");
-  const truco = v.game === "truco", n = v.players.length, mp = maxP(v.game);
+  const host = S.isHost, truco = v.game === "truco", n = v.players.length, mp = maxP(v.game);
   const ok = truco ? (n === 2 || n === 4) : n >= 2;
-  const hint = truco ? (n === 3 ? "Para empezar hacen falta 2 o 4 personas: añade un bot o espera a una más." : n < 2 ? "Espera a que alguien se una o añade un bot." : n === 4 ? "Parejas: 1° y 3° contra 2° y 4°." : "")
-    : n < 2 ? "Espera a que alguien se una o añade un bot para practicar." : "";
-  return `<header class="hero"><span class="label">La Sobremesa · Sala</span><h1>${GAME_NAME[v.game]}</h1></header>
-  <div class="grid2">
-    ${v.code ? `<section class="panel">
-      <span class="label">Código para unirse</span>
-      <span class="code">${esc(v.code)}</span>
-      ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p>
-        <div class="row">${navigator.share ? `<button id="share">Compartir enlace</button>` : ""}<button class="ghost" id="copy">Copiar enlace</button></div>
-        <p class="muted small">Quien abra el enlace entra directo a esta mesa. Si lo mandas por WhatsApp, <strong>vuelve a esta pantalla</strong>: mientras estás en otra app, tu teléfono pausa la sala.</p>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
-      ${S.net === "retry" ? `<p class="netwarn">Reconectando la sala…</p>` : ""}
-    </section>` : `<section class="panel">
-      <span class="label">Partida sin conexión</span>
-      <h2>Tú contra los bots</h2>
-      <p class="muted">Esta mesa no usa internet, así que nadie más puede unirse. Añade o quita bots y empieza cuando quieras.</p>
-      <div class="row"><button class="ghost" id="home">Volver al inicio</button></div>
-    </section>`}
-    <section class="panel">
-      <span class="label">En la mesa (${n}/${mp})</span>
-      <ul class="plist">${v.players.map((p, i) => `<li><span>${i+1}. ${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${truco && n === 4 ? ` <span class="muted">· Equipo ${i % 2 + 1}</span>` : ""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
-      ${host ? `<div class="row"><button id="start" ${ok ? "" : "disabled"}>Empezar partida</button><button class="ghost" id="bot" ${n >= mp ? "disabled" : ""}>Añadir bot</button></div>
-        ${n === 1 && v.code ? `<div class="waiting"><div class="waitdots" aria-hidden="true"><i></i><i></i><i></i></div><p>Esperando a que alguien entre con el enlace. Cuando llegue aparece aquí y puedes tocar <strong>Empezar partida</strong>.</p></div>` : ""}
-        ${hint ? `<p class="muted">${hint}</p>` : ""}`
-        : `<p class="muted">Esperando a que el anfitrión empiece la partida…</p>${truco && n === 4 ? `<p class="muted">Parejas: 1° y 3° contra 2° y 4°.</p>` : ""}`}
-    </section>
-  </div>
-  ${truco ? trucoRules : rulesHTML}`;
+  const link = roomLink(v.code, v.game), shareable = location.protocol.startsWith("http");
+  const wait = truco
+    ? (n === 1 ? "Esperando a alguien más. Con 2 juegan mano a mano; con 4, en parejas." : n === 2 ? "Ya pueden jugar mano a mano, o esperar a 2 más para jugar en parejas." : n === 3 ? "Falta 1 persona para jugar en parejas (o añade un bot)." : "¡Mesa completa! Parejas: 1° y 3° contra 2° y 4°.")
+    : (n === 1 ? "Esperando a que alguien entre con el enlace." : `Ya son ${n}. Pueden empezar o esperar a más (hasta 7).`);
+  const shown = Math.min(mp, Math.max(4, n + 1));
+  const seats = Array.from({length: shown}, (_, i) => {
+    const p = v.players[i];
+    if (!p) return `<div class="seat"><span class="av empty">+</span><span class="sn">libre</span></div>`;
+    const isMe = i === v.me;
+    return `<div class="seat ${!p.online ? "off" : ""}"><span class="av" style="background:${SEAT_COLORS[i % SEAT_COLORS.length]}">${esc((p.name || "?").trim().charAt(0).toUpperCase())}</span>
+      <span class="sn">${esc(p.name)}${isMe ? " (tú)" : ""}</span>${truco && n === 4 ? `<span class="tm">equipo ${i % 2 + 1}</span>` : ""}
+      ${host && i > 0 ? `<button class="kick" data-kick="${esc(p.pid)}" aria-label="Quitar a ${esc(p.name)}">×</button>` : ""}</div>`;
+  }).join("");
+  return `<div class="cozy-page lobby">
+    <div class="lobbyTop"><b>Mesa de ${GAME_NAME[v.game]}</b>${leaveBtn()}</div>
+    ${v.code ? `<div class="ticketc"><span class="tag">Código de la mesa</span><span class="k">${esc(v.code)}</span>
+        ${shareable ? `<div class="btns">${navigator.share ? `<button class="wa" id="share">Compartir enlace</button>` : ""}<button class="cp" id="copy">Copiar enlace</button></div>
+        <p class="tip">Si lo mandas por WhatsApp, vuelve a esta pantalla para que puedan entrar.</p>` : `<p class="tip">Comparte el código con quien quiera jugar.</p>`}</div>`
+      : `<div class="ticketc"><span class="tag">Partida sin conexión</span><p class="tip">Tú contra los bots. Añade o quita bots y empieza cuando quieras.</p></div>`}
+    <div class="seats">${seats}</div>
+    <div class="wait">${n === 1 && v.code ? `<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>` : ""}<span>${host ? wait : "Esperando a que quien creó la mesa la empiece."}</span></div>
+    ${S.isHost && S.net === "retry" ? `<p class="netwarn">Reconectando la mesa…</p>` : ""}
+    ${host ? `<div class="startbar"><button class="bot" id="bot" ${n >= mp ? "disabled" : ""}>+ Bot</button><button class="go" id="start" ${ok ? "" : "disabled"}>Empezar</button></div>` : ""}
+    <div class="rules">${truco ? trucoRules : rulesHTML}</div>
+  </div>`;
+}
+
+/* ===================== Once Rondas: armar combinaciones a mano ===================== */
+/* La mejor forma de combinar la mano, carta por carta (misma búsqueda que bestPenalty, pero recordando cada decisión). */
+function bestArrangement(hand, wr){
+  const nat = hand.filter(c => !isWild(c, wr));
+  const wl = hand.filter(c => isWild(c, wr)).sort((a, b) => cardVal(b, wr) - cardVal(a, wr));
+  const W = wl.length, n = nat.length;
+  if (!n) return W >= 3 ? [{ids: wl.map(c => c.id), mode: "set"}] : [];
+  const memo = new Map();
+  function f(mask, k){
+    if (!mask) return {v: 0};
+    const key = mask * 64 + k, hit = memo.get(key); if (hit) return hit;
+    let i = 0; while (!((mask >> i) & 1)) i++;
+    const ci = nat[i], rest = mask & ~(1 << i);
+    let best = {v: ci.r + f(rest, k).v, ch: {t: "dead", next: rest, k}};
+    const same = [];
+    for (let j = i + 1; j < n; j++) if (((rest >> j) & 1) && nat[j].r === ci.r) same.push(j);
+    const m = Math.min(same.length, 6);
+    for (let sub = 0; sub < (1 << m); sub++){
+      let cnt = 1, used = 0; const idx = [i];
+      for (let b = 0; b < m; b++) if ((sub >> b) & 1){ cnt++; used |= 1 << same[b]; idx.push(same[b]); }
+      const need = Math.max(0, 3 - cnt); if (need > k) continue;
+      const v = f(rest & ~used, k - need).v;
+      if (v < best.v) best = {v, ch: {t: "set", idx, need, next: rest & ~used, k: k - need}};
+    }
+    const avail = {};
+    for (let j = i + 1; j < n; j++) if (((rest >> j) & 1) && nat[j].s === ci.s && avail[nat[j].r] === undefined) avail[nat[j].r] = j;
+    for (let a = ci.r; a >= 3; a--){
+      let mwLeft = 0; for (let p = a; p < ci.r; p++) if (avail[p] === undefined) mwLeft++;
+      if (mwLeft > k) break;
+      let mw = mwLeft;
+      for (let b = ci.r; b <= 13; b++){
+        if (b > ci.r && avail[b] === undefined) mw++;
+        if (mw > k) break;
+        if (b - a + 1 < 3) continue;
+        const opt = []; for (let p = a; p <= b; p++) if (p !== ci.r && avail[p] !== undefined) opt.push(avail[p]);
+        const free = k - mw;
+        for (let sub = 0; sub < (1 << opt.length); sub++){
+          let used = 0, skipped = 0; const idx = [i];
+          for (let q = 0; q < opt.length; q++){ if ((sub >> q) & 1){ used |= 1 << opt[q]; idx.push(opt[q]); } else skipped++; }
+          if (skipped > free) continue;
+          const nk = k - mw - skipped, v = f(rest & ~used, nk).v;
+          if (v < best.v) best = {v, ch: {t: "run", idx, need: mw + skipped, a, next: rest & ~used, k: nk}};
+        }
+      }
+    }
+    memo.set(key, best); return best;
+  }
+  const groups = [];
+  let mask = (1 << n) - 1, k = W;
+  f(mask, k);
+  while (mask){
+    const r = f(mask, k), ch = r.ch;
+    if (ch.t !== "dead") groups.push({nat: ch.idx.map(x => nat[x]), need: ch.need, mode: ch.t, win: ch.t === "run" ? ch.a : null});
+    mask = ch.next; k = ch.k;
+  }
+  if (!groups.length) return W >= 3 ? [{ids: wl.map(c => c.id), mode: "set"}] : [];
+  let wi = 0;
+  const out = groups.map(g => { const ids = g.nat.map(c => c.id); for (let q = 0; q < g.need; q++) ids.push(wl[wi++].id); return {ids, mode: g.mode, win: g.win}; });
+  // Comodines que sobran: a un grupo (admite cualquier cantidad) o a una escalera que todavía quepa
+  const byId = new Map(hand.map(c => [c.id, c]));
+  while (wi < W){
+    const w = wl[wi++];
+    const target = out.find(g => g.mode === "set") || out.find(g => meldInfo(g.ids.concat(w.id).map(id => byId.get(id)), wr, {mode: "run"}).ok);
+    if (target){ target.ids.push(w.id); if (target.mode === "run") target.win = null; }
+  }
+  return out;
+}
+
+/* ¿Es válida esta fila? Devuelve el tipo (grupo o escalera), qué representa cada comodín y las opciones si hay dudas. */
+function meldInfo(cards, wr, g){
+  g = g || {};
+  const L = cards.length, nat = cards.filter(c => !isWild(c, wr)), wild = cards.filter(c => isWild(c, wr));
+  if (L < 3) return {ok: false, why: L ? (3 - L > 1 ? `Faltan ${3 - L} cartas` : "Falta 1 carta") : ""};
+  const ranks = nat.map(c => c.r);
+  const sameRank = nat.every(c => c.r === nat[0].r);
+  const sameSuit = nat.every(c => c.s === nat[0].s);
+  const distinct = new Set(ranks).size === ranks.length;
+  const wins = [];
+  if (sameSuit && distinct && L <= 11){
+    const lo = nat.length ? Math.min(...ranks) : 3, hi = nat.length ? Math.max(...ranks) : 3;
+    for (let a = 3; a + L - 1 <= 13; a++){ const b = a + L - 1; if (a <= lo && b >= hi) wins.push(a); }
+  }
+  const setOk = sameRank, runOk = wins.length > 0;
+  if (!setOk && !runOk){
+    let why = "No es grupo ni escalera";
+    if (sameSuit && !distinct) why = "Hay un número repetido en la escalera";
+    else if (sameSuit) why = "Los números quedan muy separados";
+    else if (!sameRank) why = "Mezcla números y palos distintos";
+    return {ok: false, why};
+  }
+  let mode = g.mode === "set" && setOk ? "set" : g.mode === "run" && runOk ? "run" : (setOk && (nat.length >= 1 || !runOk) ? "set" : "run");
+  const ambiguous = setOk && runOk;
+  if (mode === "set"){
+    const r = nat.length ? nat[0].r : null;
+    const as = {}; wild.forEach(w => { as[w.id] = r ? `= ${RK(r)}` : "comodín"; });
+    return {ok: true, mode, ambiguous, label: r ? `Grupo de ${RK(r)}` : "Grupo de comodines", order: nat.concat(wild), as};
+  }
+  const lo = nat.length ? Math.min(...ranks) : 3;
+  const a = wins.includes(g.win) ? g.win : (wins.includes(Math.min(lo, 14 - L)) ? Math.min(lo, 14 - L) : wins[0]);
+  const suit = nat.length ? nat[0].s : null, sg = suit === null ? "" : ` ${SUITS[suit].g}`;
+  const order = [], as = {}, spare = wild.slice();
+  for (let r = a; r < a + L; r++){
+    const c = nat.find(x => x.r === r);
+    if (c) order.push(c); else { const w = spare.shift(); order.push(w); as[w.id] = `= ${RK(r)}${sg}`; }
+  }
+  const label = `Escalera${suit === null ? "" : ` de ${SUITS[suit].n.toLowerCase()}`} (${RK(a)} a ${RK(a + L - 1)})`;
+  const choices = wild.length && wins.length > 1 ? wins.map(x => ({a: x, text: `${RK(x)} a ${RK(x + L - 1)}`})) : [];
+  return {ok: true, mode, ambiguous, label, order, as, a, choices};
+}
+
+/* Mantiene tus filas al día con la mano: cartas nuevas a "sueltas", las que ya no tienes desaparecen. */
+function syncMelds(v){
+  const key = "r" + v.round + ":" + (S.code || "off");
+  const ids = new Set(v.hand.map(c => c.id));
+  if (!S.melds || S.melds.key !== key){
+    S.melds = {key, groups: bestArrangement(v.hand, v.wild).map(g => ({ids: g.ids, mode: g.mode, win: g.win})), loose: []};
+  }
+  const M = S.melds;
+  M.groups.forEach(g => { g.ids = g.ids.filter(id => ids.has(id)); });
+  M.groups = M.groups.filter(g => g.ids.length);
+  M.loose = M.loose.filter(id => ids.has(id));
+  const placed = new Set(M.groups.flatMap(g => g.ids).concat(M.loose));
+  sortHand(v.hand.filter(c => !placed.has(c.id)), v.wild).forEach(c => M.loose.push(c.id));
+  return M;
+}
+function moveSel(target){
+  const M = S.melds, id = S.sel; if (!M || id === null) return;
+  M.groups.forEach(g => { g.ids = g.ids.filter(x => x !== id); g.win = null; });
+  M.loose = M.loose.filter(x => x !== id);
+  if (target === "new") M.groups.push({ids: [id], mode: null, win: null});
+  else if (target === "loose") M.loose.push(id);
+  else { const g = M.groups[Number(target)]; if (g) g.ids.push(id); }
+  M.groups = M.groups.filter(g => g.ids.length);
+  S.sel = null; render();
+}
+
+function renderMelds(v, info, myTurn){
+  const M = syncMelds(v), byId = new Map(v.hand.map(c => [c.id, c]));
+  const discarding = myTurn && v.phase === "discard";
+  const cardEl = (c, as) => {
+    const html = cardHTML(c, v.wild, `${S.sel === c.id ? "sel" : ""} ${c.id === v.lastDraw && myTurn ? "new" : ""}`, `data-card="${c.id}" tabindex="0" role="button"`)
+      .replace(/<\/div>$/, discarding && info.outs.has(c.id) ? `<span class="out">sales</span></div>` : "</div>");
+    return as ? `<div class="as">${html}<small>${esc(as)}</small></div>` : html;
+  };
+  const sel = S.sel, selIn = gi => sel !== null && M.groups[gi] && M.groups[gi].ids.includes(sel);
+  let mine = 0;
+  const lanes = M.groups.map((g, gi) => {
+    const cards = g.ids.map(id => byId.get(id));
+    const mi = meldInfo(cards, v.wild, g);
+    if (!mi.ok) mine += cards.reduce((s, c) => s + cardVal(c, v.wild), 0);
+    const list = mi.ok ? mi.order : cards;
+    const opts = mi.ok ? [
+      ...(mi.ambiguous ? [`<button class="chipbtn ${mi.mode === "set" ? "on" : ""}" data-mode="set" data-g="${gi}">Grupo</button><button class="chipbtn ${mi.mode === "run" ? "on" : ""}" data-mode="run" data-g="${gi}">Escalera</button>`] : []),
+      ...(mi.mode === "run" && mi.choices && mi.choices.length ? mi.choices.map(ch => `<button class="chipbtn ${ch.a === mi.a ? "on" : ""}" data-win="${ch.a}" data-g="${gi}">${ch.text}</button>`) : []),
+    ].join("") : "";
+    return `<div class="lane ${mi.ok ? "ok" : "bad"}">
+      <div class="lt"><span>${mi.ok ? esc(mi.label) : "Combinación sin terminar"}</span><em>${mi.ok ? "vale ✓" : esc(mi.why || "")}</em></div>
+      ${opts ? `<div class="lopts"><span>${mi.ambiguous ? "¿Cómo la usas?" : "El comodín va de"}</span>${opts}</div>` : ""}
+      <div class="lcards">${list.map(c => cardEl(c, mi.ok ? mi.as[c.id] : null)).join("")}</div>
+      ${sel !== null && !selIn(gi) ? `<button class="moveto" data-lane="${gi}">Poner aquí</button>` : ""}
+    </div>`;
+  }).join("");
+  const looseCards = M.loose.map(id => byId.get(id));
+  mine += looseCards.reduce((s, c) => s + cardVal(c, v.wild), 0);
+  const best = bestPenalty(v.hand, v.wild);
+  return {mine, best, html: `<div class="mzone">
+    ${lanes || `<p class="muted small">Todavía no tienes combinaciones. Toca una carta y luego “Nueva combinación”.</p>`}
+    <div class="lane loose"><div class="lt"><span>Sueltas</span><em>${looseCards.reduce((s, c) => s + cardVal(c, v.wild), 0)} pts</em></div>
+      <div class="lcards">${looseCards.map(c => cardEl(c, null)).join("") || `<span class="muted small">Ninguna</span>`}</div>
+      ${sel !== null && !M.loose.includes(sel) ? `<button class="moveto" data-lane="loose">Dejar suelta</button>` : ""}</div>
+    ${sel !== null ? `<button class="newlane" data-lane="new">+ Nueva combinación con esta carta</button>` : `<p class="draghint">Toca una carta para moverla a otra fila${discarding ? " o descartarla" : ""}.</p>`}
+  </div>`};
 }
 
 let penCache = {key:"", pen:0, outs:new Set()};
@@ -1239,9 +1625,10 @@ function handInfo(hand, wr, phase){
 function renderGame(v){
   const me = v.me, myTurn = v.turn === me && (v.phase === "draw" || v.phase === "discard");
   const turnName = v.players[v.turn] ? v.players[v.turn].name : "";
-  const hand = orderedHand(v.hand, "once", "r" + v.round, h => sortHand(h, v.wild));
+  const hand = v.hand;
   const info = hand.length ? handInfo(v.hand, v.wild, myTurn && v.phase === "discard" ? "discard" : "hold") : {pen:0, outs:new Set()};
   if (S.sel !== null && !v.hand.some(c => c.id === S.sel)) S.sel = null;
+  const md = hand.length ? renderMelds(v, info, myTurn) : {mine:0, best:0, html:""};
   let status;
   if (myTurn && v.phase === "draw") status = "Tu turno: roba del mazo o del descarte";
   else if (myTurn && v.phase === "discard") status = S.sel === null ? "Elige una carta para descartar" : (info.outs.has(S.sel) ? "Descarta y sales de la ronda" : "Pulsa Descartar para terminar tu turno");
@@ -1258,7 +1645,7 @@ function renderGame(v){
   return `<div class="topbar">
       <div class="round"><span class="label">Ronda</span><strong>${v.round}/${ROUNDS}</strong>
       <span class="wildchip" title="Comodín de esta ronda">Comodín: ${RK(v.wild)} + jokers</span></div>
-      <span class="muted">Once Rondas · ${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>
+      <span class="row"><span class="muted">Once Rondas · ${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>${leaveBtn()}</span>
     </div>
     <div class="players">${players}</div>
     ${outBanner}
@@ -1273,17 +1660,14 @@ function renderGame(v){
     <p class="status" aria-live="polite">${status}</p>
     <section class="panel">
       <div class="handbar">
-        <span class="label">Tu mano · ${hand.length} cartas · ${info.pen === 0 && hand.length ? "¡todo combina!" : `te quedarían ${info.pen} pts`}</span>
+        <span class="label">Tu mano · ${hand.length} cartas · ${md.mine === 0 && hand.length ? "¡todo combina!" : `así sumarías ${md.mine} pts`}</span>
         <div class="row">
-          <button class="ghost mini" id="sortS">Ordenar por palo</button>
-          <button class="ghost mini" id="sortR">Ordenar por número</button>
+          ${md.mine > md.best ? `<button class="ghost mini" id="autoMeld">Armar solo (${md.best} pts)</button>` : ""}
           ${myTurn && v.phase === "discard" ? `<button id="discBtn" ${S.sel === null ? "disabled" : ""}>${S.sel !== null && info.outs.has(S.sel) ? "Descartar y salir" : "Descartar"}</button>` : ""}
         </div>
       </div>
-      <div class="hand">${hand.map(c => cardHTML(c, v.wild,
-        `${S.sel === c.id ? "sel" : ""} ${c.id === v.lastDraw && myTurn ? "new" : ""}`,
-        `data-card="${c.id}" tabindex="0" role="button"`).replace(/<\/div>$/, (myTurn && v.phase==="discard" && info.outs.has(c.id)) ? `<span class="out">sales</span></div>` : "</div>")).join("")}</div>
-      <p class="draghint">Mantén una carta y arrástrala para cambiarla de lugar.</p>
+      ${md.html}
+      ${md.mine > md.best ? `<p class="draghint">Al terminar la ronda siempre se cuenta la mejor combinación posible, así que nunca pierdes puntos por cómo ordenes.</p>` : ""}
     </section>
     <div class="log">${v.log.map(l => `<span>${esc(l)}</span>`).join("")}</div>
     ${rulesHTML}
@@ -1306,29 +1690,52 @@ function renderEnd(v){
     ${table}
     <div class="row">${S.isHost
       ? (over ? `<button id="again">Jugar otra vez</button>` : `<button id="next">Siguiente ronda (${v.round + 1}: ${v.round + 3} cartas)</button>`)
-      : `<p class="muted">Esperando al anfitrión…</p>`}</div>
+      : `<p class="muted">Esperando a quien creó la sala…</p>`}${over ? `<button class="ghost" id="leaveNow">Volver al inicio</button>` : ""}</div>
   </div></div>`;
 }
 
+function leaveBtn(){
+  const what = S.offline ? "Salir" : S.isHost ? "Cerrar la sala" : "Salir";
+  return `<button class="${S.leaveArm ? "warn" : "ghost"} mini" id="leave">${S.leaveArm ? `Toca otra vez para ${what.toLowerCase()}` : what}</button>`;
+}
 function render(){
   const app = $("#app");
-  const net = S.net === "retry" && S.screen === "game" && S.view && S.view.phase !== "lobby"
-    ? `<div class="netbar">${S.isHost ? "Reconectando la sala…" : "Se cortó la conexión. Reconectando…"}</div>` : "";
+  const inRoom = S.screen === "game" && S.view;
+  const hostName = inRoom && S.view.players[0] ? esc(S.view.players[0].name) : "Quien creó la sala";
+  const net = !inRoom ? "" : S.isHost && S.net === "retry" ? `<div class="netbar">Reconectando la sala…</div>`
+    : !S.isHost && S.hostHere === false ? `<div class="netbar">${hostName} no está conectada ahora. Cuando vuelva, la partida sigue donde estaba.</div>` : "";
+  document.body.dataset.screen = S.screen === "invite" || S.screen === "joining" ? "invite"
+    : S.screen === "home" || !S.view ? "home" : S.view.phase === "lobby" ? "lobby" : "game";
   if (S.screen === "invite" || S.screen === "joining") app.innerHTML = renderInvite();
   else if (S.screen === "home" || !S.view) app.innerHTML = renderHome();
-  else if (S.view.phase === "lobby") app.innerHTML = renderLobby(S.view);
+  else if (S.view.phase === "lobby") app.innerHTML = net + renderLobby(S.view);
   else app.innerHTML = net + (S.view.game === "truco" ? renderTruco(S.view) : renderGame(S.view));
-  bind();
+  bind(); updateChat();
 }
 function readName(){ const el = $("#nm"); const n = (el ? el.value : S.name).trim().slice(0, 20); if (!n){ toast("Escribe tu nombre primero."); el && el.focus(); return false; } S.name = n; try{ localStorage.setItem("cv_name", n); }catch(e){} return true; }
 function bind(){
   const on = (sel, fn) => { const el = $(sel); if (el) el.onclick = fn; };
-  on("#create", () => { if (readName()) createRoom("once"); });
-  on("#createTruco", () => { if (readName()) createRoom("truco"); });
-  on("#offOnce", () => { if (readName()) playOffline("once"); });
-  on("#offTruco", () => { if (readName()) playOffline("truco"); });
+  /* Portada: elegir juego en una hoja, nombre, accesos de abajo */
+  document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { if (!readName()) return; S.editName = false; S.sheet = {type:"play", game:b.dataset.play}; render(); });
+  document.querySelectorAll("[data-off]").forEach(b => b.onclick = () => { if (!readName()) return; S.sheet = null; playOffline(b.dataset.off); });
+  on("#sheetFriends", () => { if (readName()) createRoom(S.sheet.game); });
+  on("#sheetOffline", () => { if (!readName()) return; const g = S.sheet.game; S.sheet = null; playOffline(g); });
+  on("#sheetRules", () => { S.sheet = {type:"rules", game:S.sheet.game}; render(); });
+  on("#sheetClose", () => { S.sheet = null; render(); });
+  on("#sheetDim", () => { S.sheet = null; render(); });
+  on("#footOffline", () => { S.sheet = {type:"offline"}; render(); });
+  on("#footInstall", () => { S.sheet = {type:"install"}; render(); });
+  on("#footRules", () => { S.sheet = {type:"rules"}; render(); });
+  on("#nameEdit", () => { S.editName = true; render(); const i = $("#nm"); if (i){ i.focus(); i.select(); } });
+  on("#nameOk", () => { if (readName()){ S.editName = false; render(); } });
+  const nmHome = $("#nm"); if (nmHome && $("#nameOk")) nmHome.onkeydown = e => { if (e.key === "Enter" && readName()){ S.editName = false; render(); } };
   on("#home", goHome);
   on("#toHome", goHome);
+  on("#leaveNow", leaveGame);
+  on("#leave", () => {
+    if (!S.leaveArm){ S.leaveArm = true; render(); clearTimeout(S.leaveT); S.leaveT = setTimeout(() => { S.leaveArm = false; render(); }, 3500); return; }
+    S.leaveArm = false; clearTimeout(S.leaveT); leaveGame();
+  });
   on("#cancelJoin", goHome);
   on("#enter", () => { if (readName()) joinRoom(S.code || urlCode); });
   const nmEl = $("#nm"); if (nmEl && $("#enter")) nmEl.onkeydown = e => { if (e.key === "Enter" && readName()) joinRoom(S.code || urlCode); };
@@ -1348,7 +1755,6 @@ function bind(){
     if (k === "quiero" || k === "noquiero") send({t:k}); else send({t:"call", k});
   });
   enableHandDrag($(".thand"), "truco");
-  enableHandDrag($(".hand"), "once");
   document.querySelectorAll("[data-tcard]").forEach(el => {
     const pick = () => {
       if (S.justDragged) return;
@@ -1375,12 +1781,16 @@ function bind(){
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast("Enlace copiado"), () => toast(link)); else toast(link); });
   document.querySelectorAll("[data-kick]").forEach(b => b.onclick = () => send({t:"kick", pid:b.dataset.kick}));
   document.querySelectorAll("[data-auto]").forEach(b => b.onclick = () => send({t:"autoplay", pid:b.dataset.auto}));
-  document.querySelectorAll(".hand [data-card]").forEach(el => {
+  /* Once Rondas: tocar elige la carta para moverla o descartarla; dos toques en tu turno la descartan */
+  document.querySelectorAll("[data-lane]").forEach(b => b.onclick = () => moveSel(b.dataset.lane));
+  document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { const g = S.melds.groups[Number(b.dataset.g)]; if (g){ g.mode = b.dataset.mode; g.win = null; render(); } });
+  document.querySelectorAll("[data-win]").forEach(b => b.onclick = () => { const g = S.melds.groups[Number(b.dataset.g)]; if (g){ g.win = Number(b.dataset.win); g.mode = "run"; render(); } });
+  on("#autoMeld", () => { S.melds = null; S.sel = null; render(); });
+  document.querySelectorAll(".mzone [data-card]").forEach(el => {
     const pick = () => {
-      if (S.justDragged) return;
-      const v = S.view; if (!(v.turn === v.me && v.phase === "discard")) { toast(v.turn === v.me ? "Primero roba una carta." : "Espera tu turno."); return; }
-      const id = Number(el.dataset.card);
-      if (S.sel === id){ S.sel = null; send({t:"discard", id}); return; }  // doble toque = descartar
+      const v = S.view, id = Number(el.dataset.card);
+      const canDiscard = v.turn === v.me && v.phase === "discard";
+      if (S.sel === id){ S.sel = null; if (canDiscard) send({t:"discard", id}); else render(); return; }
       S.sel = id; render();
     };
     el.onclick = pick;
@@ -1389,6 +1799,10 @@ function bind(){
 }
 window.addEventListener("beforeunload", e => { if (S.isHost && G && G.phase !== "lobby" && G.phase !== "gameOver"){ e.preventDefault(); e.returnValue = ""; } });
 render();
+/* Chat: el panel vive fuera de la página del juego para no perder lo que escribes cuando la mesa se actualiza. */
+$("#chatBtn").onclick = () => { S.chatOpen = !S.chatOpen; updateChat(); if (S.chatOpen) setTimeout(() => $("#chatInput").focus(), 50); };
+$("#chatClose").onclick = () => { S.chatOpen = false; updateChat(); };
+$("#chatForm").onsubmit = e => { e.preventDefault(); const i = $("#chatInput"); sendChat(i.value); i.value = ""; i.focus(); };
 /* Abierta desde un enlace de invitación y con nombre guardado: entra directo a la sala. */
 if (urlCode && S.name) joinRoom(urlCode);
 setInterval(() => { if (S.screen === "joining") render(); }, 4000);
