@@ -6,7 +6,7 @@
 <title>La Sobremesa</title>
 <meta name="description" content="Juegos de cartas online y gratis para jugar con familia y amigos desde cualquier lugar.">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1a2a22">
+<meta name="theme-color" content="#3f2614">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="La Sobremesa">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@700;800&family=Alegreya+Sans:wght@400;500;700;800&display=swap">
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 /* Layout: one card table. Top bar with round and scores, the table (deck + discard) in the middle, your hand along the bottom. */
@@ -155,8 +155,119 @@ details ul{padding-left:1.2em; margin:.6em 0 0; display:flex; flex-direction:col
 .calls{display:flex; flex-wrap:wrap; gap:8px; justify-content:center}
 .calls .alt{background:var(--face); color:var(--ink)}
 .calls .warn{background:var(--danger); color:var(--ink)}
+.steps-box{background:var(--face); color:var(--ink); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:8px}
+.steps{margin:0; padding-left:1.3em; display:flex; flex-direction:column; gap:6px}
 .games{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px}
-@media (prefers-reduced-motion: reduce){ .card{transition:none} }
+/* ================= Estilo "Baraja de casa": mesa de madera, paño verde y cartas con marco ================= */
+:root{
+  --wood:#5b3a24; --wood-2:#3f2614; --felt:#2f6b4a; --felt-2:#1f4b33;
+  --parch:#efe3c8; --face:#fbf5e6; --face-edge:#d8c9a6; --ink:#2b1a0c;
+  --brass:#c9a14a; --brass-ink:#2b1a0c; --ink-on-table:#f4e8d2; --muted:#d6c3a0; --rim:#7a5434;
+  --table:#3f2614; --table-2:#5b3a24; --danger:#e8806e;
+  --s0:#b8860b; --s1:#1f4f8c; --s2:#16707a; --s3:#2f6b2a; --s4:#a8241c; --joker:#6b2d8c;
+  --t-esp:#1f4f8c; --t-bas:#2f6b2a; --t-oro:#b8860b; --t-cop:#a8241c;
+  --f-display:"Alegreya SC", Georgia, "Times New Roman", serif;
+  --f-body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+}
+body{background:var(--wood) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='22'%3E%3Cpath d='M0 11 Q40 5 80 11 T160 11' stroke='%23000' stroke-opacity='.10' fill='none' stroke-width='2'/%3E%3C/svg%3E"); font-size:17px}
+h1{font-weight:800; letter-spacing:0}
+.panel{background:rgba(32,17,6,.5); border-color:var(--rim); border-radius:8px}
+button{border-radius:5px; box-shadow:0 3px 0 rgba(0,0,0,.35); font-family:var(--f-display); font-weight:800; font-size:1rem}
+button:active:not(:disabled){transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.35)}
+button.ghost{background:var(--parch); color:var(--ink); box-shadow:0 3px 0 rgba(0,0,0,.35)}
+button.mini{padding:.25em .6em; font-size:.8rem}
+button.linklike{background:none; box-shadow:none; color:var(--ink-on-table); text-decoration:underline; padding:0; font-family:var(--f-body); font-weight:500}
+.calls .alt{background:var(--face); color:var(--ink)}
+.calls .warn{background:#8f2a22; color:var(--face)}
+input{background:rgba(0,0,0,.28); border-color:var(--rim)}
+.label{color:var(--muted)}
+.small{font-size:.85rem}
+.err{color:#ffd0c4; font-weight:700}
+.netwarn,.netbar{background:#8f2a22; color:var(--face); border-radius:6px; padding:6px 12px; font-weight:700; text-align:center}
+.netbar{position:sticky; top:env(safe-area-inset-top,0px); z-index:30}
+.banner{background:var(--brass); color:var(--brass-ink)}
+.code{color:var(--brass)}
+.wildchip{background:var(--face); color:#7a1f19; font-family:var(--f-display)}
+.pchip{background:rgba(0,0,0,.28)}
+.overlay .panel{background:var(--wood-2)}
+.plist li{background:rgba(0,0,0,.25)}
+details{border-color:var(--rim)}
+.steps-box{background:var(--face)}
+.waiting{display:flex; gap:12px; align-items:center; background:rgba(0,0,0,.25); border:1px dashed var(--rim); border-radius:8px; padding:10px 12px}
+.waitdots{display:inline-flex; gap:6px; flex:none}
+.waitdots i{width:9px; height:9px; border-radius:50%; background:var(--brass); animation:wd 1.2s infinite ease-in-out}
+.waitdots i:nth-child(2){animation-delay:.2s} .waitdots i:nth-child(3){animation-delay:.4s}
+@keyframes wd{0%,80%,100%{opacity:.25; transform:scale(.8)} 40%{opacity:1; transform:none}}
+.invite{max-width:520px}
+
+/* Cartas impresas: doble marco del color del palo, índice en dos esquinas */
+.card{border-radius:5px; background:var(--face); box-shadow:0 2px 6px rgba(0,0,0,.4); color:var(--c, var(--ink)); --c:var(--ink)}
+.card::before{content:""; position:absolute; inset:4px; border:1.5px solid var(--c); border-radius:3px; opacity:.85; pointer-events:none}
+.card .rk,.card .rk2{position:absolute; font:800 calc(var(--card-w) * .26)/1 var(--f-display); color:var(--c)}
+.card .rk{top:calc(var(--card-w) * .1); left:calc(var(--card-w) * .13)}
+.card .rk2{bottom:calc(var(--card-w) * .1); right:calc(var(--card-w) * .13); transform:rotate(180deg)}
+.card .sm,.card .tnm{display:none}
+.card .big{padding-top:0; font-size:calc(var(--card-w) * .46); color:var(--c)}
+.tcard .big svg{width:1em; height:1em}
+.card.joker{--c:var(--joker); background:var(--face)}
+.card.joker .rk,.card.joker .rk2{font-size:calc(var(--card-w) * .13); letter-spacing:.03em}
+.card.wild::after{bottom:calc(var(--card-w) * .2); color:#7a1f19; font-family:var(--f-display)}
+.card.back{background:var(--face); box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.card.back::before{inset:3px; border:0; opacity:1; background:repeating-linear-gradient(45deg,#2d4f86 0 3px,#3e64a3 3px 6px); border-radius:3px}
+.hand .card.sel{box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45)}
+
+/* Once Rondas: el centro de la mesa es un paño ovalado */
+.table{border-radius:50% / 42%; background:radial-gradient(ellipse at 50% 40%, var(--felt), var(--felt-2) 75%); border:0; box-shadow:inset 0 0 0 7px var(--wood-2), inset 0 0 30px rgba(0,0,0,.45), 0 8px 18px rgba(0,0,0,.4); padding:30px 12px 24px}
+
+/* Truco: mesa con asientos, globos y fósforos */
+.tally{gap:8px; padding:12px 14px}
+.frow{display:grid; grid-template-columns:minmax(64px,auto) 1fr auto; gap:10px; align-items:center}
+.frow .fl{font:800 1rem var(--f-display); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.frow.us .fl{color:var(--brass)}
+.frow b{font:800 1.4rem var(--f-display); font-variant-numeric:tabular-nums}
+.fos{display:inline-flex; flex-wrap:wrap; gap:3px; align-items:center; min-width:0}
+.fos svg{width:20px; height:20px; stroke:var(--ink-on-table); stroke-width:2.4; stroke-linecap:round; fill:none}
+.fos .sep{width:2px; height:22px; background:var(--brass); margin:0 5px}
+.tt{position:relative; border-radius:50% / 30%; background:radial-gradient(ellipse at 50% 40%, var(--felt), var(--felt-2) 75%);
+  box-shadow:inset 0 0 0 7px var(--wood-2), inset 0 0 34px rgba(0,0,0,.45), 0 10px 22px rgba(0,0,0,.4);
+  padding:26px 12px 22px; display:grid; grid-template-columns:1fr auto 1fr; grid-template-areas:". top ." "left plays right" "chips chips chips";
+  gap:8px; align-items:center; justify-items:center; min-height:320px}
+.s-top{grid-area:top} .s-left{grid-area:left} .s-right{grid-area:right}
+.seat{display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center}
+.seat .nm{font:800 .92rem var(--f-display); background:var(--wood-2); color:var(--ink-on-table); padding:2px 10px; border-radius:20px; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.seat.turn .nm{background:var(--brass); color:var(--brass-ink)}
+.seat.off{opacity:.6}
+.seat .sub{font-size:.72rem; color:var(--muted); min-height:1em}
+.seat .backs{display:flex; --card-w:26px; padding:0 4px; min-height:36px}
+.seat .backs .card{margin:0 -3px}
+.plays{grid-area:plays; display:grid; grid-template-areas:". t ." "l c r" ". b ."; gap:6px; --card-w:clamp(40px, 10.5vw, 56px); align-items:center; justify-items:center}
+.plays.faded .card{opacity:.6}
+.pl-t{grid-area:t} .pl-l{grid-area:l} .pl-r{grid-area:r} .pl-b{grid-area:b}
+.pl-c{grid-area:c; display:flex; flex-direction:column; align-items:center; gap:3px; min-width:48px; text-align:center}
+.plays .slot{width:var(--card-w); aspect-ratio:5/7; border:2px dashed rgba(244,232,210,.35); border-radius:5px}
+.pl.won .card{box-shadow:0 0 0 3px var(--brass), 0 4px 10px rgba(0,0,0,.4)}
+.chips{grid-area:chips; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; min-height:1.4em}
+.chip{font:800 .75rem var(--f-display); background:rgba(0,0,0,.32); color:var(--ink-on-table); padding:2px 9px; border-radius:20px; white-space:nowrap}
+.bub{display:inline-block; position:relative; background:var(--face); color:#7a1f19; font:800 1rem var(--f-display); padding:3px 12px; border-radius:14px; box-shadow:0 3px 8px rgba(0,0,0,.35); white-space:nowrap; margin-top:6px}
+.bub::before{content:""; position:absolute; left:50%; top:-7px; margin-left:-7px; border:7px solid transparent; border-bottom-color:var(--face); border-top:0}
+.mysay{text-align:center; margin:-6px 0 0}
+.handzone{display:flex; flex-direction:column; gap:10px; align-items:center}
+.thand{display:flex; justify-content:center; align-items:flex-end; padding-top:18px; min-height:150px; --card-w:clamp(72px, 23vw, 96px)}
+.thand .card{margin:0 -8px; transform-origin:50% 120%; cursor:pointer; transition:transform .15s ease}
+.thand .card:first-child:not(:only-child){transform:rotate(-8deg)}
+.thand .card:last-child:not(:only-child){transform:rotate(8deg)}
+.thand .card.sel{transform:translateY(-18px); box-shadow:0 0 0 3px var(--brass), 0 10px 18px rgba(0,0,0,.45); z-index:2}
+.handzone .handbar{width:100%; justify-content:center}
+.wrap{gap:12px}
+.tally{padding:8px 12px; gap:4px}
+.frow b{font-size:1.2rem}
+.tt{min-height:0; padding:18px 10px 14px}
+.seat .sub:empty{display:none}
+.thand{min-height:130px; padding-top:14px}
+.status{margin:0}
+@media (max-width:420px){ .tt{padding:16px 6px 12px; gap:4px} .seat .nm{max-width:84px; font-size:.85rem} .calls button{flex:1 1 40%; padding:.6em .5em} .topbar{gap:4px 12px} }
+
+@media (prefers-reduced-motion: reduce){ .card{transition:none} .waitdots i{animation:none} }
 @media (max-width:520px){ .hand .card.sel{transform:translateY(-8px)} .table{gap:14px} }
 </style>
 </head>
@@ -260,6 +371,8 @@ try { S.name = localStorage.getItem("cv_name") || ""; } catch(e){}
 if (!S.pid){ S.pid = Math.random().toString(36).slice(2, 10); try{ sessionStorage.setItem("cv_pid", S.pid); }catch(e){} }
 const params = new URLSearchParams(location.search);
 const urlCode = (params.get("sala") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+const urlGame = ["once", "truco"].includes(params.get("juego")) ? params.get("juego") : "";
+if (urlCode){ S.code = urlCode; S.screen = "invite"; }
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -473,7 +586,7 @@ function tDeal(){
   const d = tDeck(); T.hands = []; T.dealt = [];
   for (let p = 0; p < N; p++){ T.hands[p] = [d.pop(), d.pop(), d.pop()]; T.dealt[p] = T.hands[p].slice(); }
   T.bazas = [{plays:[], res:null, winner:null}]; T.turn = T.mano;
-  T.level = 1; T.canRaise = null; T.tPend = null; T.ePend = null; T.envDone = false; T.last = null;
+  T.level = 1; T.canRaise = null; T.tPend = null; T.ePend = null; T.envDone = false; T.last = null; T.say = {};
   G.phase = "play";
   addLog(`Nueva mano: reparte ${tName(T.dealer)}, es mano ${tName(T.mano)}.`);
 }
@@ -557,12 +670,12 @@ function tResolveEnvido(pi, yes){
   T.ePend = null; T.envDone = true;
   if (!yes){
     const pts = E.chain.length === 1 ? 1 : envValue(E.chain.slice(0, -1));
-    addLog(`${tName(pi)}: No quiero. +${pts} para ${tTeamNames(E.by)}.`);
+    T.say[pi] = "No quiero"; addLog(`${tName(pi)}: No quiero. +${pts} para ${tTeamNames(E.by)}.`);
     tAward(E.by, pts); return;
   }
   const pts = envValue(E.chain);
   let best = -1, bestP = null; const lines = [];
-  for (let k = 0; k < N; k++){ const p = (T.mano + k) % N, v = tEnvido(T.dealt[p]); lines.push(`${tName(p)} ${v}`); if (v > best){ best = v; bestP = p; } }
+  for (let k = 0; k < N; k++){ const p = (T.mano + k) % N, v = tEnvido(T.dealt[p]); lines.push(`${tName(p)} ${v}`); T.say[p] = `${v}`; if (v > best){ best = v; bestP = p; } }
   addLog(`${tName(pi)}: Quiero. Envido: ${lines.join(", ")}. Gana ${tName(bestP)} (+${pts}).`);
   tAward(bestP % 2, pts);
 }
@@ -571,7 +684,7 @@ function trucoAct(pi, a){
   if (a.t === "play"){
     if (!av.includes("play")) return T.tPend || T.ePend ? "Primero hay que responder el canto." : "No es tu turno.";
     const k = T.hands[pi].findIndex(c => c.id === a.id); if (k < 0) return "Esa carta no está en tu mano.";
-    const [c] = T.hands[pi].splice(k, 1); T.bazas[T.bazas.length - 1].plays.push({pi, c});
+    const [c] = T.hands[pi].splice(k, 1); T.bazas[T.bazas.length - 1].plays.push({pi, c}); delete T.say[pi];
     tAfterPlay(); return;
   }
   if (a.t === "call"){
@@ -580,25 +693,25 @@ function trucoAct(pi, a){
       const kind = k.slice(2);
       if (T.ePend){ T.ePend.chain.push(kind); T.ePend.by = pi % 2; T.ePend.caller = pi; T.ePend.resp = (pi + 1) % N; }
       else T.ePend = {chain:[kind], by:pi % 2, caller:pi, resp:(pi + 1) % N};
-      addLog(`${tName(pi)}: ¡${ENAME[kind]}!`); return;
+      T.say[pi] = `¡${ENAME[kind]}!`; addLog(`${tName(pi)}: ¡${ENAME[kind]}!`); return;
     }
     const lv = Number(k.slice(2));
     if (T.tPend) T.level = T.tPend.level;   // subir la apuesta acepta la anterior
     T.tPend = {level:lv, by:pi % 2, caller:pi, resp:(pi + 1) % N};
-    addLog(`${tName(pi)}: ¡${TNAME[lv]}!`); return;
+    T.say[pi] = `¡${TNAME[lv]}!`; addLog(`${tName(pi)}: ¡${TNAME[lv]}!`); return;
   }
   if (a.t === "quiero" || a.t === "noquiero"){
     if (!av.includes(a.t)) return "No hay nada que responder.";
     const yes = a.t === "quiero";
     if (T.ePend){ tResolveEnvido(pi, yes); return; }
     const P = T.tPend; T.tPend = null;
-    if (yes){ T.level = P.level; T.canRaise = pi % 2; addLog(`${tName(pi)}: Quiero.`); }
-    else { addLog(`${tName(pi)}: No quiero.`); tEndHand(P.by, T.level, `${TNAME[P.level]} no querido`); }
+    if (yes){ T.level = P.level; T.canRaise = pi % 2; T.say[pi] = "Quiero"; addLog(`${tName(pi)}: Quiero.`); }
+    else { T.say[pi] = "No quiero"; addLog(`${tName(pi)}: No quiero.`); tEndHand(P.by, T.level, `${TNAME[P.level]} no querido`); }
     return;
   }
   if (a.t === "mazo"){
     if (!av.includes("mazo")) return "Ahora no puedes irte al mazo.";
-    addLog(`${tName(pi)} se fue al mazo.`); tEndHand(1 - pi % 2, T.level, "se fueron al mazo"); return;
+    T.say[pi] = "Me voy al mazo"; addLog(`${tName(pi)} se fue al mazo.`); tEndHand(1 - pi % 2, T.level, "se fueron al mazo"); return;
   }
 }
 /* Bot de truco: canta con buen envido, acepta según la fuerza de su mano y juega la carta justa para ganar la baza. */
@@ -644,7 +757,7 @@ function trucoView(pi){
   return {tr:{
     scores:T.scores, target:T.target, mano:T.mano, dealer:T.dealer, actor: G.phase === "play" ? tActor() : null,
     hand:T.hands[pi] || [], myEnv: T.dealt[pi] ? tEnvido(T.dealt[pi]) : 0, counts:T.hands.map(h => h.length),
-    bazas:T.bazas, level:T.level, tPend:T.tPend, ePend:T.ePend, avail:tAvail(pi), last:T.last, winner:T.winner,
+    bazas:T.bazas, say:T.say || {}, level:T.level, tPend:T.tPend, ePend:T.ePend, avail:tAvail(pi), last:T.last, winner:T.winner,
   }};
 }
 
@@ -652,26 +765,47 @@ function trucoView(pi){
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from({length:5}, () => CODE_CHARS[Math.floor(Math.random()*CODE_CHARS.length)]).join("");
 
+/* Mantener la pantalla encendida mientras hay una partida (si el teléfono lo permite). */
+let wakeLock = null;
+async function keepAwake(){
+  try {
+    if ("wakeLock" in navigator && !wakeLock && document.visibilityState === "visible"){
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    }
+  } catch(e){}
+}
+function setNet(state){ if (S.net !== state){ S.net = state; if (S.screen === "game") render(); } }
+const roomLink = (code, game) => location.origin + location.pathname + "?sala=" + code + "&juego=" + game;
+
 function createRoom(game){
   if (game) S.newGame = game;
-  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
-  S.busy = true; render();
-  S.code = newCode();
+  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet o juega sin conexión."); return; }
+  S.busy = true; S.code = newCode(); render();
+  hostPeer();
+}
+/* Abre la sala con el código de S.code. Si el teléfono la pausa (por ejemplo al cambiar a WhatsApp), se reconecta con el MISMO código. */
+function hostPeer(){
   const peer = new Peer(PREFIX + S.code);
   S.peer = peer;
+  const retry = (ms) => setTimeout(() => { if (S.peer === peer && !peer.destroyed && peer.disconnected){ try { peer.reconnect(); } catch(e){} } }, ms);
   peer.on("open", () => {
-    if (S.isHost) return;  // reconexión al servidor: la partida sigue igual
-    S.isHost = true; S.busy = false; hostInit(S.newGame); S.screen = "game"; hostSync();
+    setNet("ok");
+    if (!S.isHost){ S.isHost = true; S.busy = false; hostInit(S.newGame); S.screen = "game"; hostSync(); keepAwake(); }
   });
   peer.on("connection", conn => {
     conn.on("data", m => hostHandle(conn, m));
     conn.on("close", () => { const p = G && G.players.find(x => x.pid === conn.pid); if (p && S.conns.get(conn.pid) === conn){ p.online = false; S.conns.delete(conn.pid); addLog(`${p.name} se desconectó.`); hostSync(); } });
   });
-  peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
+  peer.on("disconnected", () => { setNet("retry"); retry(1500); });
   peer.on("error", e => {
-    if (e.type === "unavailable-id"){ peer.destroy(); createRoom(); return; }
-    if (!S.isHost){ S.busy = false; render(); }
-    toast("Error de conexión: " + (e.type || "desconocido"));
+    if (e.type === "unavailable-id"){
+      if (!S.isHost){ peer.destroy(); S.code = newCode(); hostPeer(); return; }   // código ocupado al crear: otro código
+      setNet("retry"); retry(4000); return;                                       // la sala sigue siendo nuestra: reintentar
+    }
+    if (e.type === "peer-unavailable") return;
+    if (!S.isHost){ S.busy = false; render(); toast("No hay conexión con el servidor de salas. Revisa tu internet o juega sin conexión."); return; }
+    setNet("retry"); retry(3000);
   });
 }
 
@@ -681,54 +815,104 @@ function playOffline(game){
   hostInit(game);
   const bots = game === "truco" ? 1 : 2;
   for (let k = 0; k < bots; k++) act(0, {t:"addBot"});
-  S.screen = "game"; hostSync();
+  S.screen = "game"; hostSync(); keepAwake();
 }
 function goHome(){
-  clearTimeout(botTimer);
+  clearTimeout(botTimer); clearTimeout(S.joinT); clearTimeout(S.retryT); S.retryT = null; S.joining = null;
   if (S.peer){ try { S.peer.destroy(); } catch(e){} }
-  S.peer = null; S.conn = null; S.conns = new Map(); S.isHost = false; S.offline = false;
-  S.view = null; S.code = ""; S.screen = "home"; G = null; render();
+  S.peer = null; S.conn = null; S.conns = new Map(); S.isHost = false; S.offline = false; S.busy = false; S.joinError = "";
+  S.view = null; S.code = ""; S.screen = "home"; G = null;
+  try { history.replaceState(null, "", location.pathname); } catch(e){}
+  render();
 }
 
+/* Unirse: entra solo y, si la sala no responde todavía, sigue intentando hasta 3 minutos. */
 function joinRoom(code){
-  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet y recarga."); return; }
-  code = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!window.Peer){ toast("No se pudo cargar la conexión. Revisa tu internet."); return; }
+  code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (code.length < 4){ toast("Escribe el código de la sala."); return; }
-  S.busy = true; S.code = code; render();
-  const peer = S.peer && !S.peer.destroyed ? S.peer : new Peer();
-  S.peer = peer;
-  const go = () => {
-    const conn = peer.connect(PREFIX + code, {reliable:true});
-    S.conn = conn;
-    const timer = setTimeout(() => { if (!conn.open){ S.busy = false; render(); toast("No encontré esa sala. Revisa el código o pide al anfitrión que la abra."); } }, 9000);
-    conn.on("open", () => { clearTimeout(timer); conn.send({t:"join", name:S.name, pid:S.pid}); });
-    conn.on("data", m => {
-      if (m.t === "state"){ S.busy = false; S.view = m.v; S.screen = "game"; render(); }
-      else if (m.t === "error"){ S.busy = false; render(); toast(m.m); }
-      else if (m.t === "kicked"){ S.view = null; S.screen = "home"; render(); toast("El anfitrión te sacó de la sala."); }
+  S.code = code; S.busy = true; S.joinError = "";
+  S.joining = {start: Date.now(), tries: 0};
+  S.screen = "joining"; render();
+  if (!S.peer || S.peer.destroyed || S.isHost){
+    const peer = new Peer(); S.peer = peer;
+    peer.on("error", e => {
+      if (S.peer !== peer) return;
+      if (e.type === "peer-unavailable" || e.type === "network" || e.type === "server-error" || e.type === "socket-error" || e.type === "socket-closed") retryJoin();
     });
-    conn.on("close", () => { if (S.screen === "game"){ toast("Se perdió la conexión con el anfitrión. Reintentando…"); setTimeout(() => { if (!S.conn || !S.conn.open) joinRoom(S.code); }, 2500); } });
-  };
-  if (peer.open) go(); else peer.once("open", go);
-  peer.on("error", e => { if (e.type === "peer-unavailable"){ S.busy = false; render(); toast("No encontré esa sala. Revisa el código."); } });
-  peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
+    peer.on("disconnected", () => setTimeout(() => { if (S.peer === peer && !peer.destroyed && peer.disconnected){ try { peer.reconnect(); } catch(e){} } }, 1500));
+  }
+  if (S.peer.open) tryConnect(); else S.peer.once("open", tryConnect);
 }
+function tryConnect(){
+  const peer = S.peer; if (!peer || peer.destroyed || !S.joining && S.screen !== "game") return;
+  if (S.conn && S.conn.open) return;
+  if (S.joining) S.joining.tries++;
+  const conn = peer.connect(PREFIX + S.code, {reliable:true});
+  S.conn = conn;
+  clearTimeout(S.joinT);
+  S.joinT = setTimeout(() => { if (!conn.open){ try { conn.close(); } catch(e){} retryJoin(); } }, 8000);
+  conn.on("open", () => { clearTimeout(S.joinT); conn.send({t:"join", name:S.name, pid:S.pid}); });
+  conn.on("data", m => {
+    if (conn !== S.conn) return;
+    if (m.t === "state"){
+      const first = S.screen !== "game";
+      S.joining = null; S.busy = false; S.view = m.v; S.screen = "game"; setNet("ok"); render();
+      if (first) keepAwake();
+    }
+    else if (m.t === "error"){
+      if (S.screen === "game") { toast(m.m); return; }
+      S.joining = null; S.busy = false; S.joinError = m.m; S.screen = "invite"; render();
+    }
+    else if (m.t === "kicked"){ goHome(); toast("Quien creó la sala te sacó de la mesa."); }
+  });
+  conn.on("close", () => {
+    if (conn !== S.conn || S.screen !== "game") return;
+    setNet("retry");
+    S.joining = {start: Date.now(), tries: 0, inGame: true};
+    retryJoin();
+  });
+}
+function retryJoin(){
+  if (!S.joining || S.retryT) return;
+  clearTimeout(S.joinT);
+  if (Date.now() - S.joining.start > 180000){
+    S.joining = null; S.busy = false;
+    S.joinError = "No encontré la sala. Pide a quien la creó que vuelva a abrir La Sobremesa y toca Entrar otra vez.";
+    if (S.screen !== "game") S.screen = "invite";
+    render(); return;
+  }
+  if (S.screen !== "game") render();
+  S.retryT = setTimeout(() => {
+    S.retryT = null;
+    if (!S.joining || !S.peer || S.peer.destroyed) return;
+    if (S.peer.open) tryConnect(); else { try { S.peer.reconnect(); } catch(e){} S.peer.once("open", tryConnect); }
+  }, 3000);
+}
+/* Al volver a la app: reconectar enseguida y volver a pedir que no se apague la pantalla. */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  const p = S.peer;
+  if (p && !p.destroyed && p.disconnected){ try { p.reconnect(); } catch(e){} }
+  if (!S.isHost && S.screen === "game" && (!S.conn || !S.conn.open) && !S.joining){ S.joining = {start: Date.now(), tries: 0, inGame: true}; retryJoin(); }
+  if (S.screen === "game") keepAwake();
+});
 
 function send(a){
   if (S.isHost){ const err = act(0, a); if (err) toast(err); hostSync(); }
   else if (S.conn && S.conn.open) S.conn.send({t:"act", a});
-  else toast("Sin conexión con el anfitrión.");
+  else toast("Reconectando con la sala… prueba de nuevo en unos segundos.");
 }
 
 /* ===================== Interfaz ===================== */
 function cardHTML(c, wr, extra = "", attrs = ""){
-  if (c.j) return `<div class="card joker ${extra}" ${attrs} aria-label="Joker, comodín"><span class="rk">JOKER</span><span class="big">✦</span></div>`;
+  if (c.j) return `<div class="card joker ${extra}" ${attrs} aria-label="Joker, comodín"><span class="rk">JOKER</span><span class="rk2">JOKER</span><span class="big">✦</span></div>`;
   const s = SUITS[c.s], w = c.r === wr;
-  return `<div class="card ${w ? "wild" : ""} ${extra}" ${attrs} style="--c:${s.c}" aria-label="${RK(c.r)} de ${s.n}${w ? ", comodín" : ""}"><span class="rk">${RK(c.r)}</span><span class="sm">${s.g}</span><span class="big">${s.g}</span></div>`;
+  return `<div class="card ${w ? "wild" : ""} ${extra}" ${attrs} style="--c:${s.c}" aria-label="${RK(c.r)} de ${s.n}${w ? ", comodín" : ""}"><span class="rk">${RK(c.r)}</span><span class="rk2">${RK(c.r)}</span><span class="big">${s.g}</span></div>`;
 }
 function tCardHTML(c, extra = "", attrs = ""){
   const s = TS[c.s];
-  return `<div class="card tcard ${extra}" ${attrs} style="--c:${s.c}" aria-label="${c.r} de ${s.n}"><span class="rk" style="color:var(--ink)">${c.r}</span><span class="sm">${TSVG[c.s]}</span><span class="big">${TSVG[c.s]}</span><span class="tnm" style="color:var(--c)">${s.n}</span></div>`;
+  return `<div class="card tcard ${extra}" ${attrs} style="--c:${s.c}" aria-label="${c.r} de ${s.n}"><span class="rk">${c.r}</span><span class="rk2">${c.r}</span><span class="big">${TSVG[c.s]}</span></div>`;
 }
 const trucoRules = `<details><summary>Cómo se juega al Truco</summary><ul>
   <li>Baraja española de 40 cartas (sin 8 ni 9). Cada persona recibe 3 cartas y se juegan hasta 3 bazas: gana la mano quien gana 2.</li>
@@ -741,68 +925,110 @@ const trucoRules = `<details><summary>Cómo se juega al Truco</summary><ul>
   <li>En parejas juegan 1° y 3° contra 2° y 4°. Se juega a 30: 15 malas y 15 buenas. Sin flor.</li>
 </ul></details>`;
 
+/* Tanteo con fósforos: cuadrados de 5, con una marca entre malas (0-15) y buenas (15-30). */
+function fos(n){
+  const L = [[2,3,20,3],[21,2,21,20],[20,21,3,21],[3,20,3,2],[4,19,19,4]];
+  let out = "", left = n;
+  while (left > 0){ const k = Math.min(5, left); left -= k;
+    out += `<svg viewBox="0 0 23 23" aria-hidden="true">${L.slice(0, k).map(([a,b,c,d]) => `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"/>`).join("")}</svg>`; }
+  return out;
+}
+function fosScore(n){ const m = Math.min(n, 15), b = Math.max(0, n - 15);
+  return `<span class="fos">${fos(m) || `<span class="muted">sin puntos</span>`}${b ? `<i class="sep" title="buenas"></i>${fos(b)}` : ""}</span>`; }
+
 function renderTruco(v){
   const t = v.tr, me = v.me, N = v.players.length, my = me % 2;
   if (!t) return "";
   const pname = i => esc(v.players[i].name);
   const teamNames = team => v.players.map((p, i) => i).filter(i => i % 2 === team).map(i => i === me ? "tú" : pname(i)).join(" y ");
-  const side = (team, label) => { const s = t.scores[team];
-    return `<div class="tside ${team === my ? "us" : ""}"><span class="label">${label}</span><span class="pts">${s}</span>
-      <span class="who">${teamNames(team)} · ${s < 15 ? "malas" : "buenas"}</span><div class="tbar"><i style="width:${Math.min(100, s / t.target * 100)}%"></i></div></div>`; };
-  const winLabel = team => team === my ? (N === 2 ? "ti" : "tu equipo") : (N === 2 ? pname(1 - me) : "el otro equipo");
-  const actor = t.actor;
+  const actor = t.actor, say = t.say || {};
+  const pos = p => { if (p === me) return "b"; if (N === 2) return "t"; const d = (p - me + 4) % 4; return d === 1 ? "r" : d === 2 ? "t" : "l"; };
+  const winLabel = team => team === my ? (N === 2 ? "ti" : "tu equipo") : (N === 2 ? pname((me + 1) % 2) : "el otro equipo");
+  const seat = p => { const pl = v.players[p], off = !pl.online && !pl.bot;
+    return `<div class="seat ${p === actor ? "turn" : ""} ${off ? "off" : ""}">
+      <span class="nm">${pname(p)}</span>
+      <span class="sub">${N === 4 ? (p % 2 === my ? "pareja" : "rival") : ""}${p === t.mano ? `${N === 4 ? " · " : ""}mano` : ""}${off ? " · desconectado" : ""}</span>
+      <div class="backs">${Array.from({length: t.counts[p]}, () => `<div class="card back"></div>`).join("")}</div>
+      ${say[p] ? `<span class="bub">${esc(say[p])}</span>` : ""}
+      ${S.isHost && off && p === actor ? `<button class="ghost mini" data-auto="${esc(pl.pid)}">Jugar por esta persona</button>` : ""}
+    </div>`; };
+  const others = []; for (let k = 1; k < N; k++) others.push((me + k) % N);
+  const at = a => others.filter(p => pos(p) === a).map(seat).join("");
+  let bi = t.bazas.length - 1; if (!t.bazas[bi].plays.length && bi > 0) bi--;
+  const shown = t.bazas[bi], faded = bi !== t.bazas.length - 1;
+  const resTxt = r => r === -1 ? "parda" : r === my ? (N === 2 ? "tuya" : "nuestra") : (N === 2 ? "del rival" : "de ellos");
+  const areas = N === 2 ? ["t", "b"] : ["t", "l", "r", "b"];
+  const play = a => { const pl = shown.plays.find(x => pos(x.pi) === a);
+    return `<div class="pl pl-${a} ${pl && shown.winner === pl.pi ? "won" : ""}">${pl ? tCardHTML(pl.c) : `<div class="slot"></div>`}</div>`; };
+  const chips = t.bazas.filter(b => b.res !== null).map((b, i) => `<span class="chip">${i + 1}ª ${resTxt(b.res)}</span>`).join("");
   const pend = t.ePend ? {who:t.ePend.caller, what:ENAME[t.ePend.chain[t.ePend.chain.length - 1]], resp:t.ePend.resp}
     : t.tPend ? {who:t.tPend.caller, what:TNAME[t.tPend.level], resp:t.tPend.resp} : null;
   let status = "";
   if (v.phase === "handEnd" && t.last) status = `Mano para ${winLabel(t.last.team)}: +${t.last.pts} (${esc(t.last.why)}). Repartiendo…`;
-  else if (pend) status = pend.resp === me ? `${pname(pend.who)} cantó ${pend.what}. Te toca responder`
-    : `${pend.who === me ? "Cantaste" : pname(pend.who) + " cantó"} ${pend.what}. Responde ${pname(pend.resp)}`;
-  else if (actor === me) status = "Tu turno: juega una carta o canta";
+  else if (pend) status = pend.resp === me ? `${pname(pend.who)} cantó ${pend.what}: te toca responder` : `${pend.who === me ? "Cantaste" : pname(pend.who) + " cantó"} ${pend.what}. Responde ${pname(pend.resp)}`;
+  else if (actor === me) status = "Tu turno: toca una carta o canta";
   else if (actor !== null && actor !== undefined) status = `Turno de ${pname(actor)}`;
-  const order = []; for (let k = 1; k <= N; k++) order.push((me + k) % N);
-  const head = `<span></span>` + [0,1,2].map(i => { const b = t.bazas[i];
-    const r = b && b.res !== null ? (b.res === -1 ? "parda" : b.res === my ? (N === 2 ? "tuya" : "nuestra") : (N === 2 ? "rival" : "de ellos")) : "";
-    return `<span class="bh">Baza ${i + 1}${r ? `<br>${r}` : ""}</span>`; }).join("");
-  const rows = order.map(p => `<span class="bn">${p === me ? "Tú" : pname(p)}</span>` + [0,1,2].map(i => {
-    const b = t.bazas[i], pl = b && b.plays.find(x => x.pi === p);
-    return `<div class="cell ${pl && b.winner === p ? "won" : ""}">${pl ? tCardHTML(pl.c) : `<div class="slot"></div>`}</div>`; }).join("")).join("");
-  const chips = v.players.map((p, i) => `<div class="pchip ${i === actor ? "turn" : ""} ${!p.online ? "off" : ""}">
-      <span class="nm">${esc(p.name)}${i === me ? ' <span class="muted">(tú)</span>' : ""}</span>
-      <span class="st">${N === 4 ? `Equipo ${i % 2 + 1} · ` : ""}${t.counts[i]} cartas${i === t.mano ? " · mano" : ""}</span>
-      ${S.isHost && !p.online && !p.bot && i === actor ? `<button class="ghost" data-auto="${esc(p.pid)}" style="padding:.2em .6em;font-size:.8rem;margin-top:4px">Jugar por esta persona</button>` : ""}
-    </div>`).join("");
   const LBL = {"e:envido":"Envido", "e:real":"Real envido", "e:falta":"Falta envido", "t:2":"Truco",
     "t:3": t.tPend ? "Quiero retruco" : "Retruco", "t:4": t.tPend ? "Quiero vale cuatro" : "Vale cuatro",
-    quiero:"Quiero", noquiero:"No quiero", mazo: S.mazoArm ? "Confirmar: irme al mazo" : "Irse al mazo"};
+    quiero:"Quiero", noquiero:"No quiero", mazo: S.mazoArm ? "Confirmar: me voy al mazo" : "Irse al mazo"};
   const calls = t.avail.filter(k => k !== "play").map(k =>
     `<button class="${k === "quiero" ? "" : k === "noquiero" ? "ghost" : k === "mazo" ? (S.mazoArm ? "warn" : "ghost") : "alt"}" data-call="${k}">${LBL[k]}</button>`).join("");
   const canPlay = t.avail.includes("play");
   if (S.sel !== null && !t.hand.some(c => c.id === S.sel)) S.sel = null;
   const hand = t.hand.slice().sort((a, b) => tPower(b) - tPower(a)).map(c =>
     tCardHTML(c, S.sel === c.id ? "sel" : "", `data-tcard="${c.id}" tabindex="0" role="button"`)).join("");
-  const lvl = t.level > 1 ? `${TNAME[t.level]} querido: ${t.level} pts` : "La mano vale 1 punto";
+  const lvl = t.level > 1 ? `${TNAME[t.level]} querido · ${t.level} pts` : "La mano vale 1 punto";
+  const row = (team, label) => `<div class="frow ${team === my ? "us" : ""}"><span class="fl">${label}</span>${fosScore(t.scores[team])}<b>${t.scores[team]}</b></div>`;
   const over = v.phase === "gameOver" ? `<div class="overlay" role="dialog" aria-modal="true"><div class="panel">
       <span class="label">Fin de la partida</span>
-      <h2>${t.winner === my ? (N === 2 ? "¡Ganaste!" : "¡Ganó tu equipo!") : `Ganó ${N === 2 ? pname(1 - me) : "el otro equipo"}`} ${t.scores[t.winner]} a ${t.scores[1 - t.winner]}</h2>
+      <h2>${t.winner === my ? (N === 2 ? "¡Ganaste!" : "¡Ganó tu equipo!") : `Ganó ${N === 2 ? pname((me + 1) % 2) : "el otro equipo"}`} ${t.scores[t.winner]} a ${t.scores[1 - t.winner]}</h2>
       <p class="muted">${teamNames(t.winner)}</p>
-      <div class="row">${S.isHost ? `<button id="again">Jugar otra vez</button>` : `<p class="muted">Esperando al anfitrión…</p>`}</div>
+      <div class="row">${S.isHost ? `<button id="again">Jugar otra vez</button>` : `<p class="muted">Esperando a quien creó la sala…</p>`}</div>
     </div></div>` : "";
   return `<div class="topbar">
       <div class="round"><span class="label">Truco a ${t.target}</span><span class="wildchip">${lvl}</span></div>
       <span class="muted">${v.code ? `Sala ${esc(v.code)}` : "Sin conexión"}</span>
     </div>
-    <div class="tscore">${side(my, N === 2 ? "Tú" : "Nosotros")}${side(1 - my, N === 2 ? "Rival" : "Ellos")}</div>
-    <div class="players">${chips}</div>
-    <section class="panel"><div class="bazas">${head}${rows}</div></section>
+    <section class="panel tally">${row(my, N === 2 ? "Tú" : "Nosotros")}${row(1 - my, N === 2 ? pname((me + 1) % 2) : "Ellos")}</section>
+    <div class="tt n${N}">
+      <div class="s-top">${at("t")}</div><div class="s-left">${at("l")}</div><div class="s-right">${at("r")}</div>
+      <div class="plays ${faded ? "faded" : ""}">${areas.map(play).join("")}
+        <div class="pl-c"><span class="label">Baza ${bi + 1}</span>${shown.res !== null ? `<span class="chip">${resTxt(shown.res)}</span>` : ""}</div></div>
+      <div class="chips">${chips}</div>
+    </div>
+    ${say[me] ? `<p class="mysay"><span class="bub">${esc(say[me])}</span></p>` : ""}
     <p class="status" aria-live="polite">${status}</p>
     ${calls ? `<div class="calls">${calls}</div>` : ""}
-    <section class="panel">
-      <div class="handbar"><span class="label">Tu mano · tu envido: ${t.myEnv}</span>
+    <section class="handzone">
+      <div class="thand">${hand || `<p class="muted">Ya jugaste tus cartas.</p>`}</div>
+      <div class="handbar"><span class="label">Tu envido: ${t.myEnv}</span>
         ${canPlay ? `<button id="tPlay" ${S.sel === null ? "disabled" : ""}>Jugar carta</button>` : ""}</div>
-      <div class="hand">${hand || `<p class="muted">Ya jugaste tus cartas.</p>`}</div>
     </section>
     <div class="log">${v.log.map(l => `<span>${esc(l)}</span>`).join("")}</div>
     ${trucoRules}${over}`;
+}
+
+/* Pantalla de invitación: quien abre el enlace entra directo a la sala. */
+function renderInvite(){
+  const g = GAME_NAME[urlGame];
+  const joining = S.screen === "joining";
+  const long = joining && S.joining && (Date.now() - S.joining.start > 7000);
+  return `<header class="hero">
+      <span class="label">La Sobremesa · invitación</span>
+      <h1>${joining ? "Entrando a la mesa…" : g ? `Te invitaron a jugar ${g}` : "Te invitaron a una partida"}</h1>
+    </header>
+    <section class="panel invite">
+      ${joining ? `<p>Sala <strong class="code" style="font-size:1.3rem">${esc(S.code)}</strong></p>
+          <div class="waitdots" aria-hidden="true"><i></i><i></i><i></i></div>
+          <p class="muted">${long ? "Quien creó la sala parece estar fuera de La Sobremesa (por ejemplo, mandando el enlace por WhatsApp). En cuanto vuelva, entras automáticamente." : "Conectando con la sala…"}</p>
+          <div class="row"><button class="ghost" id="cancelJoin">Cancelar</button></div>`
+        : `<label class="label" for="nm">Tu nombre</label>
+          <input id="nm" maxlength="20" placeholder="Por ejemplo: Yael" value="${esc(S.name)}" autocomplete="nickname">
+          <div class="row"><button id="enter">Entrar a la partida</button></div>
+          ${S.joinError ? `<p class="err">${esc(S.joinError)}</p>` : ""}
+          <p class="muted">Sala ${esc(S.code || urlCode)}</p>`}
+    </section>
+    <p class="muted"><button class="linklike" id="toHome">Ir al inicio de La Sobremesa</button></p>`;
 }
 
 function sortHand(hand, wr){
@@ -828,15 +1054,33 @@ window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); instal
 window.addEventListener("appinstalled", () => { installEvt = null; toast("La Sobremesa quedó instalada"); if (S.screen === "home") render(); });
 window.addEventListener("online", () => { if (S.screen === "home") render(); });
 window.addEventListener("offline", () => { if (S.screen === "home") render(); });
+function installSteps(){
+  const ua = navigator.userAgent;
+  const inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|Telegram|Snapchat|TikTok|; wv\)/i.test(ua);
+  const ios = isIOS(), android = /android/i.test(ua), samsung = /SamsungBrowser/i.test(ua), firefox = /firefox|fxios/i.test(ua);
+  const li = a => `<ol class="steps">${a.map(x => `<li>${x}</li>`).join("")}</ol>`;
+  if (inApp) return `<p>Estás viendo la página dentro de otra app (por ejemplo WhatsApp o Instagram), y desde ahí no se puede instalar.</p>`
+    + li([`Toca el menú de esa ventana (los tres puntos <strong>⋯</strong> o <strong>⋮</strong>, arriba o abajo).`,
+          `Elige <strong>Abrir en el navegador</strong> (${ios ? "Safari" : "Chrome"}).`,
+          `Ya en el navegador, vuelve a tocar <strong>Instalar en este dispositivo</strong>.`]);
+  if (ios) return li([`Toca el botón <strong>Compartir</strong> (el cuadrado con una flecha hacia arriba; en Safari está abajo en el centro, en Chrome arriba a la derecha).`,
+          `Desliza hacia abajo y toca <strong>Añadir a pantalla de inicio</strong>.`,
+          `Toca <strong>Añadir</strong>. El icono aparece junto a tus otras apps.`]);
+  if (samsung) return li([`Toca el menú <strong>≡</strong> abajo a la derecha.`, `Elige <strong>Añadir página a</strong> → <strong>Pantalla de inicio</strong>.`]);
+  if (android) return li([`Toca el menú <strong>⋮</strong> arriba a la derecha de Chrome.`,
+          `Elige <strong>Instalar aplicación</strong> o <strong>Añadir a pantalla de inicio</strong>.`, `Confirma con <strong>Instalar</strong>.`]);
+  if (firefox) return `<p>Firefox en la computadora no instala páginas como app. Abre este enlace en Chrome o Edge y vuelve a tocar el botón.</p>`;
+  return li([`Busca el icono de instalar en la barra de direcciones (una pantalla con una flecha), a la derecha.`,
+          `O abre el menú del navegador (<strong>⋮</strong> o <strong>⋯</strong>) y elige <strong>Instalar La Sobremesa</strong> (en Chrome puede estar en “Enviar, guardar y compartir”).`]);
+}
 function installHTML(){
-  if (isStandalone() || !location.protocol.startsWith("http")) return "";
-  const how = installEvt ? `<div class="row"><button id="install">Instalar La Sobremesa</button></div>`
-    : isIOS() ? `<p class="muted">En iPhone o iPad: abre esta página en Safari, toca el botón Compartir y elige <strong>Añadir a pantalla de inicio</strong>.</p>`
-    : `<p class="muted">En Android: menú ⋮ del navegador y <strong>Instalar app</strong> (o “Añadir a pantalla de inicio”). En la computadora: el icono de instalar en la barra de direcciones.</p>`;
+  if (!location.protocol.startsWith("http")) return "";
+  if (isStandalone()) return `<section class="panel"><h2>App instalada</h2><p class="muted">Estás usando La Sobremesa como app. Sin internet puedes jugar contra los bots.</p></section>`;
   return `<section class="panel">
       <h2>Tenerla como app</h2>
       <p class="muted">Instálala y se abre como una app, con su icono. Una vez instalada puedes jugar contra los bots aunque no tengas internet.</p>
-      ${how}
+      <div class="row"><button id="install">Instalar en este dispositivo</button></div>
+      ${S.showInstall ? `<div class="steps-box" id="installSteps">${installSteps()}</div>` : ""}
     </section>`;
 }
 
@@ -885,7 +1129,7 @@ function renderHome(){
 
 function renderLobby(v){
   const host = S.isHost;
-  const link = location.origin + location.pathname + "?sala=" + v.code;
+  const link = roomLink(v.code, v.game);
   const shareable = location.protocol.startsWith("http");
   const truco = v.game === "truco", n = v.players.length, mp = maxP(v.game);
   const ok = truco ? (n === 2 || n === 4) : n >= 2;
@@ -896,7 +1140,10 @@ function renderLobby(v){
     ${v.code ? `<section class="panel">
       <span class="label">Código para unirse</span>
       <span class="code">${esc(v.code)}</span>
-      ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p><div class="row"><button class="ghost" id="copy">Copiar enlace</button></div>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
+      ${shareable ? `<p class="muted" style="word-break:break-all">${esc(link)}</p>
+        <div class="row">${navigator.share ? `<button id="share">Compartir enlace</button>` : ""}<button class="ghost" id="copy">Copiar enlace</button></div>
+        <p class="muted small">Quien abra el enlace entra directo a esta mesa. Si lo mandas por WhatsApp, <strong>vuelve a esta pantalla</strong>: mientras estás en otra app, tu teléfono pausa la sala.</p>` : `<p class="muted">Comparte el código. Quien se una debe abrir este mismo juego y escribirlo.</p>`}
+      ${S.net === "retry" ? `<p class="netwarn">Reconectando la sala…</p>` : ""}
     </section>` : `<section class="panel">
       <span class="label">Partida sin conexión</span>
       <h2>Tú contra los bots</h2>
@@ -907,6 +1154,7 @@ function renderLobby(v){
       <span class="label">En la mesa (${n}/${mp})</span>
       <ul class="plist">${v.players.map((p, i) => `<li><span>${i+1}. ${esc(p.name)}${i===0?'<span class="tag">anfitrión</span>':""}${truco && n === 4 ? ` <span class="muted">· Equipo ${i % 2 + 1}</span>` : ""}${!p.online?' <span class="muted">(desconectado)</span>':""}</span>${host && i>0 ? `<button class="ghost" data-kick="${esc(p.pid)}" style="padding:.2em .7em">Quitar</button>` : ""}</li>`).join("")}</ul>
       ${host ? `<div class="row"><button id="start" ${ok ? "" : "disabled"}>Empezar partida</button><button class="ghost" id="bot" ${n >= mp ? "disabled" : ""}>Añadir bot</button></div>
+        ${n === 1 && v.code ? `<div class="waiting"><div class="waitdots" aria-hidden="true"><i></i><i></i><i></i></div><p>Esperando a que alguien entre con el enlace. Cuando llegue aparece aquí y puedes tocar <strong>Empezar partida</strong>.</p></div>` : ""}
         ${hint ? `<p class="muted">${hint}</p>` : ""}`
         : `<p class="muted">Esperando a que el anfitrión empiece la partida…</p>${truco && n === 4 ? `<p class="muted">Parejas: 1° y 3° contra 2° y 4°.</p>` : ""}`}
     </section>
@@ -1003,9 +1251,12 @@ function renderEnd(v){
 
 function render(){
   const app = $("#app");
-  if (S.screen === "home" || !S.view) app.innerHTML = renderHome();
+  const net = S.net === "retry" && S.screen === "game" && S.view && S.view.phase !== "lobby"
+    ? `<div class="netbar">${S.isHost ? "Reconectando la sala…" : "Se cortó la conexión. Reconectando…"}</div>` : "";
+  if (S.screen === "invite" || S.screen === "joining") app.innerHTML = renderInvite();
+  else if (S.screen === "home" || !S.view) app.innerHTML = renderHome();
   else if (S.view.phase === "lobby") app.innerHTML = renderLobby(S.view);
-  else app.innerHTML = S.view.game === "truco" ? renderTruco(S.view) : renderGame(S.view);
+  else app.innerHTML = net + (S.view.game === "truco" ? renderTruco(S.view) : renderGame(S.view));
   bind();
 }
 function readName(){ const el = $("#nm"); const n = (el ? el.value : S.name).trim().slice(0, 20); if (!n){ toast("Escribe tu nombre primero."); el && el.focus(); return false; } S.name = n; try{ localStorage.setItem("cv_name", n); }catch(e){} return true; }
@@ -1016,7 +1267,16 @@ function bind(){
   on("#offOnce", () => { if (readName()) playOffline("once"); });
   on("#offTruco", () => { if (readName()) playOffline("truco"); });
   on("#home", goHome);
-  on("#install", async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch(e){} installEvt = null; render(); });
+  on("#toHome", goHome);
+  on("#cancelJoin", goHome);
+  on("#enter", () => { if (readName()) joinRoom(S.code || urlCode); });
+  const nmEl = $("#nm"); if (nmEl && $("#enter")) nmEl.onkeydown = e => { if (e.key === "Enter" && readName()) joinRoom(S.code || urlCode); };
+  on("#share", async () => { try { await navigator.share({title:"La Sobremesa", text:`¡Ven a jugar ${GAME_NAME[S.view.game]} conmigo!`, url:roomLink(S.view.code, S.view.game)}); } catch(e){} });
+  on("#install", async () => {
+    if (installEvt){ const ev = installEvt; installEvt = null; ev.prompt(); try { await ev.userChoice; } catch(e){} render(); return; }
+    S.showInstall = !S.showInstall; render();
+    const box = $("#installSteps"); if (box) box.scrollIntoView({behavior:"smooth", block:"nearest"});
+  });
   on("#tPlay", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"play", id}); } });
   document.querySelectorAll("[data-call]").forEach(b => b.onclick = () => {
     const k = b.dataset.call;
@@ -1047,7 +1307,7 @@ function bind(){
   on("#sortS", () => { S.sort = "suit"; render(); });
   on("#sortR", () => { S.sort = "rank"; render(); });
   on("#discBtn", () => { if (S.sel !== null){ const id = S.sel; S.sel = null; send({t:"discard", id}); } });
-  on("#copy", () => { const link = location.origin + location.pathname + "?sala=" + S.view.code;
+  on("#copy", () => { const link = roomLink(S.view.code, S.view.game);
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast("Enlace copiado"), () => toast(link)); else toast(link); });
   document.querySelectorAll("[data-kick]").forEach(b => b.onclick = () => send({t:"kick", pid:b.dataset.kick}));
   document.querySelectorAll("[data-auto]").forEach(b => b.onclick = () => send({t:"autoplay", pid:b.dataset.auto}));
@@ -1064,6 +1324,9 @@ function bind(){
 }
 window.addEventListener("beforeunload", e => { if (S.isHost && G && G.phase !== "lobby" && G.phase !== "gameOver"){ e.preventDefault(); e.returnValue = ""; } });
 render();
+/* Abierta desde un enlace de invitación y con nombre guardado: entra directo a la sala. */
+if (urlCode && S.name) joinRoom(urlCode);
+setInterval(() => { if (S.screen === "joining") render(); }, 4000);
 /* Guarda la app en el dispositivo para abrirla sin internet (solo en https, por ejemplo GitHub Pages). */
 if ("serviceWorker" in navigator && window.isSecureContext && location.protocol.startsWith("http")){
   window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
